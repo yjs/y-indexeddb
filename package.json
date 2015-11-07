@@ -4,7 +4,21 @@
   "description": "IndexedDB database adapter for Yjs",
   "main": "./src/IndexedDB.js",
   "scripts": {
-    "test": "gulp test"
+    "test": "node --harmony ./node_modules/.bin/gulp test",
+    "lint": "./node_modules/.bin/standard"
+  },
+  "pre-commit": [
+    "lint",
+    "test"
+  ],
+  "standard": {
+    "parser": "babel-eslint",
+    "ignore": [
+      "build/**",
+      "dist/**",
+      "./y.js",
+      "./y.js.map"
+    ]
   },
   "repository": {
     "type": "git",
@@ -18,7 +32,16 @@
   "author": "Kevin Jahns <kevin.jahns@rwth-aachen.de>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/y-js/y-indexeddb/issues"
+    "url": "https://github.com/y-js/yjs/issues"
   },
-  "homepage": "https://github.com/y-js/y-indexeddb#readme"
+  "homepage": "http://y-js.org",
+  "devDependencies": {
+    "babel-eslint": "^4.1.4",
+    "gulp": "^3.9.0",
+    "gulp-load-plugins": "^1.1.0",
+    "gulp-prompt": "^0.1.2",
+    "pre-commit": "^1.1.2",
+    "run-sequence": "^1.1.4",
+    "standard": "^5.3.1"
+  }
 }

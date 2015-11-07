@@ -6,10 +6,10 @@ var runSequence = require('run-sequence').use(gulp)
 
 require('../yjs/gulpfile.helper.js')(gulp, {
   polyfills: [],
-  entry: './src/Array.js',
-  targetName: 'y-array.js',
-  moduleName: 'y-array',
-  specs: ['./src/Array.spec.js']
+  entry: './src/IndexedDB.js',
+  targetName: 'y-indexeddb.js',
+  moduleName: 'y-indexeddb',
+  specs: []
 })
 
 gulp.task('default', ['updateSubmodule'], function (cb) {
