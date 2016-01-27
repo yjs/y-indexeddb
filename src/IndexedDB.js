@@ -129,7 +129,7 @@ function extend (Y) {
           store.db = yield window.indexedDB.open(options.namespace, store.idbVersion)
         })
         if (options.cleanStart) {
-          delete window.localStorage['__YJS_userid_' + options.namespace]
+          delete window.localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])]
           this.requestTransaction(function * () {
             yield this.os.store.clear()
             yield this._ds.store.clear()
@@ -137,35 +137,90 @@ function extend (Y) {
           })
         }
         this.whenUserIdSet(function (userid) {
-          window.localStorage['__YJS_userid_' + options.namespace] = userid
+          if (window.localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])] == null) {
+            window.localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])] = JSON.stringify([userid, 0])
+          }
         })
         this.requestTransaction(function * () {
           // this should be executed after the previous two defined transactions
           // after we computed the upgrade event (see `yield indexedDB.open(..)`), we can check if userid is still stored on localstorage
-          var userId = window.localStorage['__YJS_userid_' + options.namespace]
-          if (userId != null) {
-            store.setUserId(userId)
+          var uid = window.localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])]
+          if (uid != null) {
+            store.setUserId(uid)
+            var nextuid = JSON.parse(uid)
+            nextuid[1] = nextuid[1] + 1
+            window.localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])] = JSON.stringify(nextuid)
           }
           // copy from persistent Store to not persistent StoreClone. (there could already be content in Store)
           yield* this._ds.iterate(this, null, null, function * (o) {
             yield* this.ds.put(o, true)
           })
         })
+        this.operationAddedNamespace = JSON.stringify(['__YJS__', this.options.namespace])
         var operationsToAdd = []
         window.addEventListener('storage', function (event) {
-          if (event.key === '__YJS__' + options.namespace) {
-            operationsToAdd.push(event.newValue)
+          if (event.key === store.operationAddedNamespace) {
+            operationsToAdd.push(JSON.parse(event.newValue))
+            var op, i // helper variables
             if (operationsToAdd.length === 1) {
               store.requestTransaction(function * () {
-                var add = operationsToAdd
-                operationsToAdd = []
-                for (var i in add) {
-                  // don't call the localStorage event twice..
-                  var op = JSON.parse(add[i])
+                /* about nextRound:
+                   if op is not a delete, we retrieve it again from the db
+                   then it could be true that op.left is not yet added to store
+                    - but the types _change function expects that it is..
+                   In this case left has to be executed first
+
+                   What is left to say: we only put ready to execute ops in nextRound!
+
+                   TODO: implement a smart buffer in eventHelper!!!!!
+                */
+                var nextRound = []
+                for (i = 0; i < operationsToAdd.length; i++) {
+                  op = operationsToAdd[i]
                   if (op.struct !== 'Delete') {
                     op = yield* this.getOperation(op.id)
+                    while (op.left != null) {
+                      var left = yield* this.getOperation(op.left)
+                      if (!left.deleted) {
+                        break
+                      }
+                      op.left = left.left
+                    }
                   }
-                  yield* this.store.operationAdded(this, op, true)
+                  nextRound.push(op)
+                }
+                operationsToAdd = []
+                while (nextRound.length > 0) {
+                  var add = nextRound
+                  nextRound = []
+                  for (i = 0; i < add.length; i++) {
+                    op = add[i]
+                    if (op.struct === 'Insert') {
+                      var ready = true
+                      for (let j = i + 1; j < add.length; j++) {
+                        let _op = add[j]
+                        if (Y.utils.compareIds(_op.id, op.left)) {
+                          ready = false
+                          break
+                        }
+                      }
+                      if (ready) {
+                        for (let j = 0; j < nextRound.length; j++) {
+                          let _op = add[j]
+                          if (Y.utils.compareIds(_op.id, op.left)) {
+                            ready = false
+                            break
+                          }
+                        }
+                      }
+                      if (!ready) {
+                        // it is necessary to execute left first
+                        nextRound.push(op)
+                        continue
+                      }
+                    }
+                    yield* this.store.operationAdded(this, op, true)
+                  }
                 }
               })
             }
@@ -175,7 +230,7 @@ function extend (Y) {
       * operationAdded (transaction, op, noAdd) {
         yield* super.operationAdded(transaction, op)
         if (!noAdd) {
-          window.localStorage['__YJS__' + this.options.namespace] = JSON.stringify(op)
+          window.localStorage[this.operationAddedNamespace] = JSON.stringify(op)
         }
       }
       transact (makeGen) {
@@ -198,7 +253,7 @@ function extend (Y) {
             } // else no transaction in progress!
             return
           }
-          console.log("new request", request.source != null ? request.source.name : null)
+          console.log('new request', request.source != null ? request.source.name : null)
           if (request.constructor === window.IDBRequest) {
             request.onsuccess = function () {
               var res = request.result
@@ -228,7 +283,7 @@ function extend (Y) {
             request.onupgradeneeded = function (event) {
               var db = event.target.result
               try {
-                delete window.localStorage['__YJS_userid_' + store.options.namespace]
+                delete window.localStorage[JSON.stringify(['Yjs_indexeddb', store.options.namespace])]
                 db.deleteObjectStore('OperationStore')
                 db.deleteObjectStore('DeleteStore')
                 db.deleteObjectStore('StateStore')
