@@ -1,6 +1,6 @@
 {
   "name": "y-indexeddb",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "IndexedDB database adapter for Yjs",
   "main": "./src/IndexedDB.js",
   "scripts": {
