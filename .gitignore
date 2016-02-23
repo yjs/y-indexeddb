@@ -5,3 +5,4 @@ bower_components
 .codio
 .settings
 build
+.vscode
