@@ -253,7 +253,7 @@ function extend (Y) {
             } // else no transaction in progress!
             return
           }
-          console.log('new request', request.source != null ? request.source.name : null)
+          // console.log('new request', request.source != null ? request.source.name : null)
           if (request.constructor === window.IDBRequest) {
             request.onsuccess = function () {
               var res = request.result
@@ -282,12 +282,13 @@ function extend (Y) {
             }
             request.onupgradeneeded = function (event) {
               var db = event.target.result
-              try {
-                delete window.localStorage[JSON.stringify(['Yjs_indexeddb', store.options.namespace])]
+              delete window.localStorage[JSON.stringify(['Yjs_indexeddb', store.options.namespace])]
+              if (db.objectStoreNames.contains('OperationStore')) {
+                // delete only if exists (we skip the remaining tests)
                 db.deleteObjectStore('OperationStore')
                 db.deleteObjectStore('DeleteStore')
                 db.deleteObjectStore('StateStore')
-              } catch (e) {}
+              }
               db.createObjectStore('OperationStore', {keyPath: 'id'})
               db.createObjectStore('DeleteStore', {keyPath: 'id'})
               db.createObjectStore('StateStore', {keyPath: 'id'})
