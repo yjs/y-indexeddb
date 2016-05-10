@@ -162,67 +162,12 @@ function extend (Y) {
         window.addEventListener('storage', function (event) {
           if (event.key === store.operationAddedNamespace) {
             operationsToAdd.push(JSON.parse(event.newValue))
-            var op, i // helper variables
             if (operationsToAdd.length === 1) {
               store.requestTransaction(function * () {
-                /* about nextRound:
-                   if op is not a delete, we retrieve it again from the db
-                   then it could be true that op.left is not yet added to store
-                    - but the types _change function expects that it is..
-                   In this case left has to be executed first
-
-                   What is left to say: we only put ready to execute ops in nextRound!
-
-                   TODO: implement a smart buffer in eventHelper!!!!!
-                */
-                var nextRound = []
-                for (i = 0; i < operationsToAdd.length; i++) {
-                  op = operationsToAdd[i]
-                  if (op.struct !== 'Delete') {
-                    op = yield* this.getOperation(op.id)
-                    while (op.left != null) {
-                      var left = yield* this.getOperation(op.left)
-                      if (!left.deleted) {
-                        break
-                      }
-                      op.left = left.left
-                    }
-                  }
-                  nextRound.push(op)
+                for (var i = 0; i < operationsToAdd.length; i++) {
+                  yield* this.store.operationAdded(this, operationsToAdd[i], true)
                 }
                 operationsToAdd = []
-                while (nextRound.length > 0) {
-                  var add = nextRound
-                  nextRound = []
-                  for (i = 0; i < add.length; i++) {
-                    op = add[i]
-                    if (op.struct === 'Insert') {
-                      var ready = true
-                      for (let j = i + 1; j < add.length; j++) {
-                        let _op = add[j]
-                        if (Y.utils.compareIds(_op.id, op.left)) {
-                          ready = false
-                          break
-                        }
-                      }
-                      if (ready) {
-                        for (let j = 0; j < nextRound.length; j++) {
-                          let _op = add[j]
-                          if (Y.utils.compareIds(_op.id, op.left)) {
-                            ready = false
-                            break
-                          }
-                        }
-                      }
-                      if (!ready) {
-                        // it is necessary to execute left first
-                        nextRound.push(op)
-                        continue
-                      }
-                    }
-                    yield* this.store.operationAdded(this, op, true)
-                  }
-                }
               })
             }
           }
@@ -254,7 +199,7 @@ function extend (Y) {
             } // else no transaction in progress!
             return
           }
-          console.log('new request', request.source != null ? request.source.name : null)
+          // console.log('new request', request.source != null ? request.source.name : null)
           if (request.constructor === window.IDBRequest) {
             request.onsuccess = function () {
               var res = request.result
@@ -283,12 +228,13 @@ function extend (Y) {
             }
             request.onupgradeneeded = function (event) {
               var db = event.target.result
-              try {
-                delete window.localStorage[JSON.stringify(['Yjs_indexeddb', store.options.namespace])]
+              delete window.localStorage[JSON.stringify(['Yjs_indexeddb', store.options.namespace])]
+              if (db.objectStoreNames.contains('OperationStore')) {
+                // delete only if exists (we skip the remaining tests)
                 db.deleteObjectStore('OperationStore')
                 db.deleteObjectStore('DeleteStore')
                 db.deleteObjectStore('StateStore')
-              } catch (e) {}
+              }
               db.createObjectStore('OperationStore', {keyPath: 'id'})
               db.createObjectStore('DeleteStore', {keyPath: 'id'})
               db.createObjectStore('StateStore', {keyPath: 'id'})
