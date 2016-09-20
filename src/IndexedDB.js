@@ -1,5 +1,7 @@
 /* global Y */
 'use strict'
+// Thx to @jed for this script https://gist.github.com/jed/982883
+function generateGuid(a){return a?(a^Math.random()*16>>a/4).toString(16):([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,generateGuid)} // eslint-disable-line
 
 function extend (Y) {
   Y.requestModules(['memory']).then(function () {
@@ -150,6 +152,14 @@ function extend (Y) {
             var nextuid = JSON.parse(uid)
             nextuid[1] = nextuid[1] + 1
             window.localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])] = JSON.stringify(nextuid)
+          } else {
+            // wait for a 500ms before setting a random user id
+            window.setTimeout(function () {
+              if (store.userId == null) {
+                // the user is probably offline, so that the connector can't get a user id
+                store.setUserId(generateGuid())
+              }
+            }, 500)
           }
           // copy from persistent Store to not persistent StoreClone. (there could already be content in Store)
           yield* this._ds.iterate(this, null, null, function * (o) {
