@@ -174,10 +174,27 @@ function extend (Y) {
             operationsToAdd.push(JSON.parse(event.newValue))
             if (operationsToAdd.length === 1) {
               store.requestTransaction(function * () {
+                var _toAdd = []
+                /*
+                There is a special case (see issue y-js/y-indexeddb#2) which we need to handle:
+                Assume a user creates a new type (lets say an Array) and then inserts something in it. Assume both operations are in operationsToAdd.
+                Since a type is initialized first, it already knows about the insertion, and we no longer need to call .operationAdded.
+                If we don't handle this case the type inserts the same operation twice.
+                => So wee need to filter out the operations whose parent is also inclduded in operationsToAdd!
+                */
                 for (var i = 0; i < operationsToAdd.length; i++) {
-                  yield* this.store.operationAdded(this, operationsToAdd[i], true)
+                  var op = operationsToAdd[i]
+                  if (op.parent == null || operationsToAdd.every(function (p) {
+                    return !Y.utils.compareIds(p.id, op.parent)
+                  })) {
+                    _toAdd.push(op)
+                  }
                 }
                 operationsToAdd = []
+
+                for (i = 0; i < _toAdd.length; i++) {
+                  yield* this.store.operationAdded(this, _toAdd[i], true)
+                }
               })
             }
           }
