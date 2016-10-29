@@ -154,56 +154,54 @@ function extend (Y) {
             nextuid[1] = nextuid[1] + 1
             window.localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])] = JSON.stringify(nextuid)
           } else {
-            // wait for a 500ms before setting a random user id
+            // wait for a 200ms before setting a random user id
             window.setTimeout(function () {
               if (store.userId == null) {
                 // the user is probably offline, so that the connector can't get a user id
-                store.setUserId(generateGuid())
+                store.setUserId(generateGuid()) // TODO: maybe it is best to always use a generated uid
               }
-            }, 500)
+            }, 200)
           }
           // copy from persistent Store to not persistent StoreClone. (there could already be content in Store)
           yield* this._ds.iterate(this, null, null, function * (o) {
             yield* this.ds.put(o, true)
           })
         })
-        this.operationAddedNamespace = JSON.stringify(['__YJS__', this.options.namespace])
         var operationsToAdd = []
-        window.addEventListener('storage', function (event) {
-          if (event.key === store.operationAddedNamespace) {
-            operationsToAdd.push(JSON.parse(event.newValue))
-            if (operationsToAdd.length === 1) {
-              store.requestTransaction(function * () {
-                var _toAdd = []
-                /*
-                There is a special case (see issue y-js/y-indexeddb#2) which we need to handle:
-                Assume a user creates a new type (lets say an Array) and then inserts something in it. Assume both operations are in operationsToAdd.
-                Since a type is initialized first, it already knows about the insertion, and we no longer need to call .operationAdded.
-                If we don't handle this case the type inserts the same operation twice.
-                => So wee need to filter out the operations whose parent is also inclduded in operationsToAdd!
-                */
-                for (var i = 0; i < operationsToAdd.length; i++) {
-                  var op = operationsToAdd[i]
-                  if (op.parent == null || operationsToAdd.every(function (p) {
-                    return !Y.utils.compareIds(p.id, op.parent)
-                  })) {
-                    _toAdd.push(op)
-                  }
+        this.communicationObserver = function (op) {
+          operationsToAdd.push(op)
+          if (operationsToAdd.length === 1) {
+            store.requestTransaction(function * () {
+              var _toAdd = []
+              /*
+              There is a special case (see issue y-js/y-indexeddb#2) which we need to handle:
+              Assume a user creates a new type (lets say an Array) and then inserts something in it. Assume both operations are in operationsToAdd.
+              Since a type is initialized first, it already knows about the insertion, and we no longer need to call .operationAdded.
+              If we don't handle this case the type inserts the same operation twice.
+              => So wee need to filter out the operations whose parent is also inclduded in operationsToAdd!
+              */
+              for (var i = 0; i < operationsToAdd.length; i++) {
+                var op = operationsToAdd[i]
+                if (op.parent == null || operationsToAdd.every(function (p) {
+                  return !Y.utils.compareIds(p.id, op.parent)
+                })) {
+                  _toAdd.push(op)
                 }
-                operationsToAdd = []
+              }
+              operationsToAdd = []
 
-                for (i = 0; i < _toAdd.length; i++) {
-                  yield* this.store.operationAdded(this, _toAdd[i], true)
-                }
-              })
-            }
+              for (i = 0; i < _toAdd.length; i++) {
+                yield* this.store.operationAdded(this, _toAdd[i], true)
+              }
+            })
           }
-        }, false)
+        }
+        Y.utils.localCommunication.addObserver(this.options.namespace, this.communicationObserver)
       }
       * operationAdded (transaction, op, noAdd) {
         yield* super.operationAdded(transaction, op)
         if (!noAdd) {
-          window.localStorage[this.operationAddedNamespace] = JSON.stringify(op)
+          Y.utils.localCommunication.broadcast(this.options.namespace, op)
         }
       }
       transact (makeGen) {
@@ -273,9 +271,52 @@ function extend (Y) {
       }
       // TODO: implement "free"..
       * destroy () {
+        Y.utils.localCommunication.removeObserver(this.options.namespace, this.communicationObserver)
         this.db.close()
         yield window.indexedDB.deleteDatabase(this.options.namespace)
       }
+    }
+    if (Y.utils.localCommunication == null) {
+      // localCommunication uses localStorage to communicate with all tabs / windows
+      // Using pure localStorage does not call the event listener on the tab the event is created on.
+      // Using this implementation the event is also called on the tab the event is created on.
+      Y.utils.localCommunication = {
+        observer: {},
+        addObserver: function (room, f) {
+          var listener = this.observer[room]
+          if (listener == null) {
+            listener = []
+            this.observer[room] = listener
+          }
+          listener.push(f)
+        },
+        removeObserver: function (room, f) {
+          this.observer[room] = this.observer[room].filter(function (g) { return f !== g })
+        },
+        broadcast: function (room, m) {
+          window.localStorage.setItem(JSON.stringify(['__YJS__', room]), JSON.stringify(m))
+          this.observer[room].map(function (f) {
+            f(m)
+          })
+        }
+      }
+      window.addEventListener('storage', function (event) {
+        var room
+        try {
+          var parsed = JSON.parse(event.key)
+          if (parsed[0] === '__YJS__') {
+            room = parsed[1]
+          } else {
+            return
+          }
+        } catch (e) { return }
+        var listener = Y.utils.localCommunication.observer[room]
+        if (listener != null) {
+          listener.map(function (f) {
+            f(JSON.parse(event.newValue))
+          })
+        }
+      })
     }
     Y.extend('indexeddb', OperationStore)
   })
