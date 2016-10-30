@@ -272,7 +272,10 @@ function extend (Y) {
       * destroy () {
         Y.utils.localCommunication.removeObserver(this.options.namespace, this.communicationObserver)
         this.db.close()
-        yield window.indexedDB.deleteDatabase(this.options.namespace)
+      }
+      deleteDB () {
+        window.indexedDB.deleteDatabase(this.options.namespace)
+        return Promise.resolve()
       }
     }
     if (Y.utils.localCommunication == null) {
