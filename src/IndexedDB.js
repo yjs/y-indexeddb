@@ -98,8 +98,9 @@ function extend (Y) {
         this.store = store
         this.ss = new BufferedStore(transaction, 'StateStore')
         this.os = new BufferedStore(transaction, 'OperationStore')
-        this._ds = new BufferedStore(transaction, 'DeleteStore')
-        this.ds = store.dsClone.copyTo(this._ds)
+        // this._ds = new BufferedStore(transaction, 'DeleteStore')
+        // this.ds = store.dsClone.copyTo(this._ds)
+        this.ds = new BufferedStore(transaction, 'DeleteStore')
       }
     }
     class OperationStore extends Y.AbstractDatabase {
@@ -107,7 +108,7 @@ function extend (Y) {
         super(y, options)
         // dsClone is persistent over transactions!
         // _ds is not
-        this.dsClone = new ClonedStore()
+        // this.dsClone = new ClonedStore()
 
         if (options == null) {
           options = {}
@@ -134,7 +135,7 @@ function extend (Y) {
           delete window.localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])]
           this.requestTransaction(function * () {
             yield this.os.store.clear()
-            yield this._ds.store.clear()
+            yield this.ds.store.clear() // formerly only _ds
             yield this.ss.store.clear()
           })
         }
@@ -161,10 +162,12 @@ function extend (Y) {
               }
             }, 200)
           }
-          // copy from persistent Store to not persistent StoreClone. (there could already be content in Store)
+          // copy from persistent Store to non persistent StoreClone. (there could already be content in Store)
+          /*
           yield* this._ds.iterate(this, null, null, function * (o) {
             yield* this.ds.put(o, true)
           })
+          */
         })
         var operationsToAdd = []
         this.communicationObserver = function (op) {
@@ -270,10 +273,10 @@ function extend (Y) {
       }
       // TODO: implement "free"..
       * destroy () {
-        Y.utils.localCommunication.removeObserver(this.options.namespace, this.communicationObserver)
         this.db.close()
       }
       deleteDB () {
+        Y.utils.localCommunication.removeObserver(this.options.namespace, this.communicationObserver)
         window.indexedDB.deleteDatabase(this.options.namespace)
         return Promise.resolve()
       }
