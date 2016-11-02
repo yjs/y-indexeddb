@@ -105,11 +105,22 @@ function extend (Y) {
     }
     class OperationStore extends Y.AbstractDatabase {
       constructor (y, options) {
+        /**
+         * There will be no garbage collection when using this connector!
+         * There may be several instances that communicate via localstorage,
+         * and we don't want too many instances to garbage collect.
+         * Currently, operationAdded (see AbstractDatabase) does not communicate updates to the garbage collector.
+         * 
+         * While this could work, it only decreases performance.
+         * Operations are automatically garbage collected when the client syncs (the server still garbage collects, if there is any).
+         * Another advantage is that now the indexeddb adapter works with y-webrtc (since no gc is in place).
+         * 
+         */   
+        options.gcTimeout = -1
         super(y, options)
         // dsClone is persistent over transactions!
         // _ds is not
         // this.dsClone = new ClonedStore()
-
         if (options == null) {
           options = {}
         }
