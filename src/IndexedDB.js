@@ -115,8 +115,10 @@ function extend (Y) {
          * Operations are automatically garbage collected when the client syncs (the server still garbage collects, if there is any).
          * Another advantage is that now the indexeddb adapter works with y-webrtc (since no gc is in place).
          * 
-         */   
-        options.gcTimeout = -1
+         */
+        if (options.gc == null) {
+          options.gc = false
+        }
         super(y, options)
         // dsClone is persistent over transactions!
         // _ds is not
