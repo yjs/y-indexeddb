@@ -89,7 +89,7 @@ function extend (Y) {
     Y.utils.createStoreClone = createStoreClone
 
     var BufferedStore = Y.utils.createSmallLookupBuffer(Store)
-    var ClonedStore = Y.utils.createStoreClone(Y.utils.RBTree)
+    // var ClonedStore = Y.utils.createStoreClone(Y.utils.RBTree)
 
     class Transaction extends Y.Transaction {
       constructor (store) {
@@ -110,11 +110,11 @@ function extend (Y) {
          * There may be several instances that communicate via localstorage,
          * and we don't want too many instances to garbage collect.
          * Currently, operationAdded (see AbstractDatabase) does not communicate updates to the garbage collector.
-         * 
+         *
          * While this could work, it only decreases performance.
          * Operations are automatically garbage collected when the client syncs (the server still garbage collects, if there is any).
          * Another advantage is that now the indexeddb adapter works with y-webrtc (since no gc is in place).
-         * 
+         *
          */
         if (options.gc == null) {
           options.gc = false
