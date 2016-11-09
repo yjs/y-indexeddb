@@ -90,7 +90,7 @@ function extend (Y) {
     Y.utils.createStoreClone = createStoreClone
 
     var BufferedStore = Y.utils.createSmallLookupBuffer(Store)
-    var ClonedStore = Y.utils.createStoreClone(Y.utils.RBTree)
+    // var ClonedStore = Y.utils.createStoreClone(Y.utils.RBTree)
 
     class Transaction extends Y.Transaction {
       constructor (store) {
@@ -99,17 +99,31 @@ function extend (Y) {
         this.store = store
         this.ss = new BufferedStore(transaction, 'StateStore')
         this.os = new BufferedStore(transaction, 'OperationStore')
-        this._ds = new BufferedStore(transaction, 'DeleteStore')
-        this.ds = store.dsClone.copyTo(this._ds)
+        // this._ds = new BufferedStore(transaction, 'DeleteStore')
+        // this.ds = store.dsClone.copyTo(this._ds)
+        this.ds = new BufferedStore(transaction, 'DeleteStore')
       }
     }
     class OperationStore extends Y.AbstractDatabase {
       constructor (y, options) {
+        /**
+         * There will be no garbage collection when using this connector!
+         * There may be several instances that communicate via localstorage,
+         * and we don't want too many instances to garbage collect.
+         * Currently, operationAdded (see AbstractDatabase) does not communicate updates to the garbage collector.
+         *
+         * While this could work, it only decreases performance.
+         * Operations are automatically garbage collected when the client syncs (the server still garbage collects, if there is any).
+         * Another advantage is that now the indexeddb adapter works with y-webrtc (since no gc is in place).
+         *
+         */
+        if (options.gc == null) {
+          options.gc = false
+        }
         super(y, options)
         // dsClone is persistent over transactions!
         // _ds is not
-        this.dsClone = new ClonedStore()
-
+        // this.dsClone = new ClonedStore()
         if (options == null) {
           options = {}
         }
@@ -135,7 +149,7 @@ function extend (Y) {
           delete window.localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])]
           this.requestTransaction(function * () {
             yield this.os.store.clear()
-            yield this._ds.store.clear()
+            yield this.ds.store.clear() // formerly only _ds
             yield this.ss.store.clear()
           })
         }
@@ -162,10 +176,12 @@ function extend (Y) {
               }
             }, 200)
           }
-          // copy from persistent Store to not persistent StoreClone. (there could already be content in Store)
+          // copy from persistent Store to non persistent StoreClone. (there could already be content in Store)
+          /*
           yield* this._ds.iterate(this, null, null, function * (o) {
             yield* this.ds.put(o, true)
           })
+          */
         })
         var operationsToAdd = []
         this.communicationObserver = function (op) {
@@ -271,9 +287,12 @@ function extend (Y) {
       }
       // TODO: implement "free"..
       * destroy () {
-        Y.utils.localCommunication.removeObserver(this.options.namespace, this.communicationObserver)
         this.db.close()
-        yield window.indexedDB.deleteDatabase(this.options.namespace)
+      }
+      deleteDB () {
+        Y.utils.localCommunication.removeObserver(this.options.namespace, this.communicationObserver)
+        window.indexedDB.deleteDatabase(this.options.namespace)
+        return Promise.resolve()
       }
     }
     if (Y.utils.localCommunication == null) {
