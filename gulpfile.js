@@ -8,7 +8,7 @@ require('../yjs/gulpfile.helper.js')(gulp, {
   polyfills: [],
   entry: './src/IndexedDB.js',
   targetName: 'y-indexeddb.js',
-  moduleName: 'y-indexeddb',
+  moduleName: 'yIndexeddb',
   specs: []
 })
 
