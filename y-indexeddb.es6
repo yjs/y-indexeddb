@@ -1,5 +1,11 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-/* global Y */
+/**
+ * yjs - A framework for real-time p2p shared editing on any data
+ * @version v12.1.3
+ * @link http://y-js.org
+ * @license MIT
+ */
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.yIndexeddb = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/* global Y, IDBKeyRange, indexedDB, localStorage, IDBRequest, IDBOpenDBRequest, IDBCursor, IDBCursorWithValue, addEventListener */
 'use strict'
 // Thx to @jed for this script https://gist.github.com/jed/982883
 function generateGuid(a){return a?(a^Math.random()*16>>a/4).toString(16):([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,generateGuid)} // eslint-disable-line
@@ -20,10 +26,10 @@ function extend (Y) {
         yield this.store.delete(id)
       }
       * findWithLowerBound (start) {
-        return yield this.store.openCursor(window.IDBKeyRange.lowerBound(start))
+        return yield this.store.openCursor(IDBKeyRange.lowerBound(start))
       }
       * findWithUpperBound (end) {
-        return yield this.store.openCursor(window.IDBKeyRange.upperBound(end), 'prev')
+        return yield this.store.openCursor(IDBKeyRange.upperBound(end), 'prev')
       }
       * findNext (id) {
         return yield* this.findWithLowerBound([id[0], id[1] + 1])
@@ -34,11 +40,11 @@ function extend (Y) {
       * iterate (t, start, end, gen) {
         var range = null
         if (start != null && end != null) {
-          range = window.IDBKeyRange.bound(start, end)
+          range = IDBKeyRange.bound(start, end)
         } else if (start != null) {
-          range = window.IDBKeyRange.lowerBound(start)
+          range = IDBKeyRange.lowerBound(start)
         } else if (end != null) {
-          range = window.IDBKeyRange.upperBound(end)
+          range = IDBKeyRange.upperBound(end)
         }
         var cursorResult
         if (range != null) {
@@ -143,10 +149,12 @@ function extend (Y) {
         var store = this
         // initialize database!
         this.requestTransaction(function * () {
-          store.db = yield window.indexedDB.open(options.namespace, store.idbVersion)
+          store.db = yield indexedDB.open(options.namespace, store.idbVersion)
         })
         if (options.cleanStart) {
-          delete window.localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])]
+          if (typeof localStorage !== 'undefined') {
+            delete localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])]
+          }
           this.requestTransaction(function * () {
             yield this.os.store.clear()
             yield this.ds.store.clear() // formerly only _ds
@@ -154,22 +162,27 @@ function extend (Y) {
           })
         }
         this.whenUserIdSet(function (userid) {
-          if (window.localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])] == null) {
-            window.localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])] = JSON.stringify([userid, 0])
+          if (typeof localStorage !== 'undefined' && localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])] == null) {
+            localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])] = JSON.stringify([userid, 0])
           }
         })
         this.requestTransaction(function * () {
           // this should be executed after the previous two defined transactions
           // after we computed the upgrade event (see `yield indexedDB.open(..)`), we can check if userid is still stored on localstorage
-          var uid = window.localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])]
+          var uid = null
+          if (typeof localStorage !== 'undefined') {
+            uid = localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])]
+          }
           if (uid != null) {
             store.setUserId(uid)
-            var nextuid = JSON.parse(uid)
-            nextuid[1] = nextuid[1] + 1
-            window.localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])] = JSON.stringify(nextuid)
+            if (typeof localStorage !== 'undefined') {
+              var nextuid = JSON.parse(uid)
+              nextuid[1] = nextuid[1] + 1
+              localStorage[JSON.stringify(['Yjs_indexeddb', options.namespace])] = JSON.stringify(nextuid)
+            }
           } else {
             // wait for a 200ms before setting a random user id
-            window.setTimeout(function () {
+            setTimeout(function () {
               if (store.userId == null) {
                 // the user is probably offline, so that the connector can't get a user id
                 store.setUserId(generateGuid()) // TODO: maybe it is best to always use a generated uid
@@ -241,10 +254,10 @@ function extend (Y) {
             return
           }
           // console.log('new request', request.source != null ? request.source.name : null)
-          if (request.constructor === window.IDBRequest) {
+          if (request.constructor === IDBRequest) {
             request.onsuccess = function () {
               var res = request.result
-              if (res != null && res.constructor === window.IDBCursorWithValue) {
+              if (res != null && res.constructor === IDBCursorWithValue) {
                 res = res.value
               }
               handleTransactions(gen.next(res))
@@ -252,14 +265,14 @@ function extend (Y) {
             request.onerror = function (err) {
               gen.throw(err)
             }
-          } else if (request.constructor === window.IDBCursor) {
+          } else if (request.constructor === IDBCursor) {
             request.onsuccess = function () {
               handleTransactions(gen.next(request.result != null ? request.result.value : null))
             }
             request.onerror = function (err) {
               gen.throw(err)
             }
-          } else if (request.constructor === window.IDBOpenDBRequest) {
+          } else if (request.constructor === IDBOpenDBRequest) {
             request.onsuccess = function (event) {
               var db = event.target.result
               handleTransactions(gen.next(db))
@@ -269,7 +282,9 @@ function extend (Y) {
             }
             request.onupgradeneeded = function (event) {
               var db = event.target.result
-              delete window.localStorage[JSON.stringify(['Yjs_indexeddb', store.options.namespace])]
+              if (typeof localStorage !== 'undefined') {
+                delete localStorage[JSON.stringify(['Yjs_indexeddb', store.options.namespace])]
+              }
               if (db.objectStoreNames.contains('OperationStore')) {
                 // delete only if exists (we skip the remaining tests)
                 db.deleteObjectStore('OperationStore')
@@ -291,7 +306,7 @@ function extend (Y) {
       }
       deleteDB () {
         Y.utils.localCommunication.removeObserver(this.options.namespace, this.communicationObserver)
-        window.indexedDB.deleteDatabase(this.options.namespace)
+        indexedDB.deleteDatabase(this.options.namespace)
         return Promise.resolve()
       }
     }
@@ -313,29 +328,33 @@ function extend (Y) {
           this.observer[room] = this.observer[room].filter(function (g) { return f !== g })
         },
         broadcast: function (room, m) {
-          window.localStorage.setItem(JSON.stringify(['__YJS__', room]), JSON.stringify(m))
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(JSON.stringify(['__YJS__', room]), JSON.stringify(m))
+          }
           this.observer[room].map(function (f) {
             f(m)
           })
         }
       }
-      window.addEventListener('storage', function (event) {
-        var room
-        try {
-          var parsed = JSON.parse(event.key)
-          if (parsed[0] === '__YJS__') {
-            room = parsed[1]
-          } else {
-            return
+      if (typeof localStorage !== 'undefined') {
+        addEventListener('storage', function (event) {
+          var room
+          try {
+            var parsed = JSON.parse(event.key)
+            if (parsed[0] === '__YJS__') {
+              room = parsed[1]
+            } else {
+              return
+            }
+          } catch (e) { return }
+          var listener = Y.utils.localCommunication.observer[room]
+          if (listener != null) {
+            listener.map(function (f) {
+              f(JSON.parse(event.newValue))
+            })
           }
-        } catch (e) { return }
-        var listener = Y.utils.localCommunication.observer[room]
-        if (listener != null) {
-          listener.map(function (f) {
-            f(JSON.parse(event.newValue))
-          })
-        }
-      })
+        })
+      }
     }
     Y.extend('indexeddb', OperationStore)
   })
@@ -346,5 +365,6 @@ if (typeof Y !== 'undefined') {
   extend(Y)
 }
 
-},{}]},{},[1])
+},{}]},{},[1])(1)
+});
 
