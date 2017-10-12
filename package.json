@@ -1,10 +1,9 @@
 {
   "name": "y-indexeddb-encrypted",
   "version": "0.0.1",
-  "description": "IndexedDB database adapter for Yjs",
-  "main": "./src/IndexedDB.js",
+  "description": "Encrypted IndexedDB database adapter for Yjs",
+  "main": "./src/EncryptedIndexedDB.js",
   "scripts": {
-    "test": "node --harmony ./node_modules/.bin/gulp test",
     "lint": "./node_modules/.bin/standard"
   },
   "pre-commit": [
@@ -22,7 +21,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/y-js/y-indexeddb.git"
+    "url": "git+https://github.com/pgte/y-indexeddb-encrypted.git"
   },
   "keywords": [
     "Yjs",
@@ -36,9 +35,9 @@
   "author": "Kevin Jahns <kevin.jahns@rwth-aachen.de>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/y-js/yjs/issues"
+    "url": "https://github.com/pgte/y-indexeddb-encrypted/issues"
   },
-  "homepage": "http://y-js.org",
+  "homepage": "https://github.com/pgte/y-indexeddb-encrypted",
   "devDependencies": {
     "babel-eslint": "^4.1.4",
     "babel-plugin-transform-runtime": "^6.1.18",
