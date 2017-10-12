@@ -7,13 +7,18 @@ function extend (Y) {
   Y.requestModules(['memory']).then(function () {
     class Store {
       constructor (transaction, name) {
+        this.transaction = transaction
         this.store = transaction.objectStore(name)
       }
       * find (id) {
         return yield this.store.get(id)
       }
       * put (v) {
-        yield this.store.put(v)
+        const id = v.id
+        yield this.store.put({
+          id: id,
+          value: this._options.encode(v)
+        })
       }
       * delete (id) {
         yield this.store.delete(id)
@@ -46,7 +51,8 @@ function extend (Y) {
           cursorResult = this.store.openCursor()
         }
         while ((yield cursorResult) != null) {
-          yield* gen.call(t, cursorResult.result.value)
+          const value = cursorResult.result.value
+          yield* gen.call(t, value && this._options.decode(value.value))
           cursorResult.result.continue()
         }
       }
@@ -94,13 +100,17 @@ function extend (Y) {
     class Transaction extends Y.Transaction {
       constructor (store) {
         super(store)
+        const options = store.options
         var transaction = store.db.transaction(['OperationStore', 'StateStore', 'DeleteStore'], 'readwrite')
         this.store = store
         this.ss = new BufferedStore(transaction, 'StateStore')
+        this.ss._options = options // HACK
         this.os = new BufferedStore(transaction, 'OperationStore')
+        this.os._options = options // HACK
         // this._ds = new BufferedStore(transaction, 'DeleteStore')
         // this.ds = store.dsClone.copyTo(this._ds)
         this.ds = new BufferedStore(transaction, 'DeleteStore')
+        this.ds._options = options // HACK
       }
     }
     class OperationStore extends Y.AbstractDatabase {
@@ -253,6 +263,10 @@ function extend (Y) {
               if (res != null && res.constructor === IDBCursorWithValue) {
                 res = res.value
               }
+              if (res && typeof res.value === 'string') {
+                res = store.options.decode(res.value)
+              }
+
               handleTransactions(gen.next(res))
             }
             request.onerror = function (err) {
@@ -349,7 +363,7 @@ function extend (Y) {
         })
       }
     }
-    Y.extend('indexeddb', OperationStore)
+    Y.extend('indexeddb-encrypted', OperationStore)
   })
 }
 

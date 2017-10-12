@@ -1,6 +1,6 @@
 {
-  "name": "y-indexeddb",
-  "version": "8.1.9",
+  "name": "y-indexeddb-encrypted",
+  "version": "0.0.1",
   "description": "IndexedDB database adapter for Yjs",
   "main": "./src/IndexedDB.js",
   "scripts": {
