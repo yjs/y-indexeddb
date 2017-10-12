@@ -1,17 +1,10 @@
 {
-  "name": "y-indexeddb",
-  "version": "9.0.0-0",
-  "description": "IndexedDB database adapter for Yjs",
-  "main": "./y-indexeddb.node.js",
-  "browser": "./y-indexeddb.js",
-  "module": "./src/y-indexeddb.js",
+  "name": "y-indexeddb-encrypted",
+  "version": "0.0.1",
+  "description": "Encrypted IndexedDB database adapter for Yjs",
+  "main": "./src/EncryptedIndexedDB.js",
   "scripts": {
-    "test": "npm run lint",
-    "dist": "rollup -c rollup.browser.js && rollup -c rollup.node.js",
-    "lint": "standard",
-    "watch": "concurrently 'rollup -wc rollup.browser.js' 'rollup -wc rollup.node.js'",
-    "postversion": "npm run dist",
-    "postpublish": "tag-dist-files --overwrite-existing-tag"
+    "lint": "./node_modules/.bin/standard"
   },
   "standard": {
     "ignore": [
@@ -20,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/y-js/y-indexeddb.git"
+    "url": "git+https://github.com/pgte/y-indexeddb-encrypted.git"
   },
   "keywords": [
     "Yjs",
@@ -34,9 +27,9 @@
   "author": "Kevin Jahns <kevin.jahns@rwth-aachen.de>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/y-js/yjs/issues"
+    "url": "https://github.com/pgte/y-indexeddb-encrypted/issues"
   },
-  "homepage": "http://y-js.org",
+  "homepage": "https://github.com/pgte/y-indexeddb-encrypted",
   "devDependencies": {
     "babel-plugin-external-helpers": "^6.22.0",
     "babel-preset-latest": "^6.24.1",
