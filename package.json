@@ -53,6 +53,6 @@
     "tag-dist-files": "^0.1.6"
   },
   "peerDependencies": {
-    "yjs": "^13.0.0-16"
+    "yjs": "^13.0.0-44"
   }
 }
