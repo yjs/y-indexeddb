@@ -1,11 +1,23 @@
+import nodeResolve from 'rollup-plugin-node-resolve'
+import commonjs from 'rollup-plugin-commonjs'
 var pkg = require('./package.json')
 
 export default {
-  entry: 'src/y-indexeddb.js',
-  moduleName: 'yIndexeddb',
-  format: 'umd',
-  dest: 'y-indexeddb.node.js',
-  sourceMap: true,
+  input: 'src/y-indexeddb.js',
+  nameame: 'extendYIndexedDBPersistence',
+  sourcemap: true,
+  output: {
+    file: 'y-indexeddb.node.js',
+    format: 'cjs'
+  },
+  plugins: [
+    nodeResolve({
+      main: true,
+      module: true,
+      browser: true
+    }),
+    commonjs()
+  ],
   banner: `
 /**
  * ${pkg.name} - ${pkg.description}

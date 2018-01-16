@@ -1,12 +1,24 @@
 import babel from 'rollup-plugin-babel'
 import uglify from 'rollup-plugin-uglify'
+import nodeResolve from 'rollup-plugin-node-resolve'
+import commonjs from 'rollup-plugin-commonjs'
 var pkg = require('./package.json')
 
 export default {
-  entry: 'src/y-indexeddb.js',
-  moduleName: 'yIndexeddb',
-  format: 'umd',
+  input: 'src/y-indexeddb.js',
+  name: 'extendYIndexedDBPersistence',
+  sourcemap: true,
+  output: {
+    file: 'y-indexeddb.js',
+    format: 'umd'
+  },
   plugins: [
+    nodeResolve({
+      main: true,
+      module: true,
+      browser: true
+    }),
+    commonjs(),
     babel(),
     uglify({
       output: {
@@ -21,8 +33,6 @@ export default {
       }
     })
   ],
-  dest: 'y-indexeddb.js',
-  sourceMap: true,
   banner: `
 /**
  * ${pkg.name} - ${pkg.description}
