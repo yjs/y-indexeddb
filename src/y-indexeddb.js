@@ -52,7 +52,9 @@ export default class IndexedDBPersistence extends AbstractPersistence {
     })
     cnf.channel = new BroadcastChannel('__yjs__' + room)
     cnf.channel.addEventListener('message', e => {
-      integrateRemoteStructs(y, new BinaryDecoder(e))
+      y.transact(function () {
+        integrateRemoteStructs(y, new BinaryDecoder(e.data))
+      })
     })
     var token = true
     cnf.mutualExcluse = function (f) {
