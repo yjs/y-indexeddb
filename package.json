@@ -13,6 +13,10 @@
     "postversion": "npm run dist",
     "postpublish": "tag-dist-files --overwrite-existing-tag"
   },
+  "files": [
+    "y-indexeddb.*",
+    "src/*"
+  ],
   "standard": {
     "ignore": [
       "./y-indexeddb.*"
