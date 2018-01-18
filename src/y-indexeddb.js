@@ -26,9 +26,11 @@ function openDB (room) {
       if (db.objectStoreNames.contains('model')) {
         db.deleteObjectStore('updates')
         db.deleteObjectStore('model')
+        db.deleteObjectStore('custom')
       }
       db.createObjectStore('updates', {autoIncrement: true})
       db.createObjectStore('model')
+      db.createObjectStore('custom')
     }
     request.onerror = function (event) {
       reject(new Error(event.target.error))
@@ -96,6 +98,31 @@ export default function extendYIndexedDBPersistence (Y) {
       let cnf = this.ys.get(y)
       cnf.db.close()
       super.deinit(y)
+    }
+
+    set (y, key, value) {
+      const cnf = this.ys.get(y)
+      const t = cnf.db.transaction(['custom'], 'readwrite')
+      const customStore = t.objectStore('custom')
+      return rtop(customStore.put(value, key))
+    }
+
+    get (y, key) {
+      const cnf = this.ys.get(y)
+      const t = cnf.db.transaction(['custom'], 'readwrite')
+      const customStore = t.objectStore('custom')
+      return rtop(customStore.get(key))
+    }
+
+    /**
+     * Remove all persisted data that belongs to a room.
+     * Automatically destroys all Yjs all Yjs instances that persist to
+     * the room. If `destroyYjsInstances = false` the persistence functionality
+     * will be removed from the Yjs instances.
+     */
+    removePersistedData (room, destroyYjsInstances = true) {
+      super.removePersistedData(room, destroyYjsInstances)
+      return rtop(indexedDB.deleteDatabase(room))
     }
 
     saveUpdate (y, update) {
