@@ -70,14 +70,18 @@ export default function extendYIndexedDBPersistence (Y) {
       dbOpened.then(db => {
         cnf.db = db
       })
-      cnf.channel = new BroadcastChannel('__yjs__' + room)
-      cnf.channel.addEventListener('message', e => {
-        cnf.mutualExcluse(function () {
-          y.transact(function () {
-            Y.utils.integrateRemoteStructs(y, new Y.utils.BinaryDecoder(e.data))
+      if (typeof BroadcastChannel !== 'undefined') {
+        cnf.channel = new BroadcastChannel('__yjs__' + room)
+        cnf.channel.addEventListener('message', e => {
+          cnf.mutualExcluse(function () {
+            y.transact(function () {
+              Y.utils.integrateRemoteStructs(y, new Y.utils.BinaryDecoder(e.data))
+            })
           })
         })
-      })
+      } else {
+        cnf.channel = null
+      }
       var token = true
       cnf.mutualExcluse = function (f) {
         if (token) {
@@ -127,7 +131,9 @@ export default function extendYIndexedDBPersistence (Y) {
 
     saveUpdate (y, update) {
       let cnf = this.ys.get(y)
-      cnf.channel.postMessage(update)
+      if (cnf.channel !== null) {
+        cnf.channel.postMessage(update)
+      }
       let t = cnf.db.transaction(['updates'], 'readwrite')
       let updatesStore = t.objectStore('updates')
       updatesStore.put(update)
