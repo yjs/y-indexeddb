@@ -73,7 +73,7 @@ export default function extendYIndexedDBPersistence (Y) {
       if (typeof BroadcastChannel !== 'undefined') {
         cnf.channel = new BroadcastChannel('__yjs__' + room)
         cnf.channel.addEventListener('message', e => {
-          cnf.mutualExcluse(function () {
+          cnf.mutualExclude(function () {
             y.transact(function () {
               Y.utils.integrateRemoteStructs(y, new Y.utils.BinaryDecoder(e.data))
             })
@@ -81,19 +81,6 @@ export default function extendYIndexedDBPersistence (Y) {
         })
       } else {
         cnf.channel = null
-      }
-      var token = true
-      cnf.mutualExcluse = function (f) {
-        if (token) {
-          token = false
-          try {
-            f()
-          } catch (e) {
-            token = true
-            throw new Error(e)
-          }
-          token = true
-        }
       }
       return dbOpened
     }
@@ -147,7 +134,7 @@ export default function extendYIndexedDBPersistence (Y) {
 
     saveStruct (y, struct) {
       let cnf = this.ys.get(y)
-      cnf.mutualExcluse(() => {
+      cnf.mutualExclude(() => {
         super.saveStruct(y, struct)
       })
     }
@@ -159,9 +146,7 @@ export default function extendYIndexedDBPersistence (Y) {
       let updatesStore = t.objectStore('updates')
       return Promise.all([rtop(modelStore.get(0)), rtop(updatesStore.getAll())])
         .then(([model, updates]) => {
-          cnf.mutualExcluse(() => {
-            super.retrieve(y, model, updates)
-          })
+          super.retrieve(y, model, updates)
         })
     }
 
