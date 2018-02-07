@@ -133,10 +133,7 @@ export default function extendYIndexedDBPersistence (Y) {
     }
 
     saveStruct (y, struct) {
-      let cnf = this.ys.get(y)
-      cnf.mutualExclude(() => {
-        super.saveStruct(y, struct)
-      })
+      super.saveStruct(y, struct)
     }
 
     retrieve (y) {
