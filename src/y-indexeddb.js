@@ -76,7 +76,7 @@ export default function extendYIndexedDBPersistence (Y) {
           cnf.mutualExclude(function () {
             y.transact(function () {
               Y.utils.integrateRemoteStructs(y, new Y.utils.BinaryDecoder(e.data))
-            })
+            }, true)
           })
         })
       } else {
