@@ -8,7 +8,7 @@
   "scripts": {
     "test": "npm run lint",
     "dist": "rm -rf dist && rollup -c",
-    "lint": "markdownlint README.md && standard && tsc",
+    "lint": "markdownlint README.md && standard",
     "preversion": "npm run lint && PRODUCTION=1 npm run dist"
   },
   "files": [

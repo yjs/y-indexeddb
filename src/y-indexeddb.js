@@ -1,7 +1,4 @@
-/* global indexedDB, location, BroadcastChannel */
-
 import * as idb from 'lib0/indexeddb.js'
-import * as promise from 'lib0/promise.js'
 import * as Y from 'yjs'
 import * as mutex from 'lib0/mutex.js'
 import { Observable } from 'lib0/observable.js'
@@ -17,12 +14,12 @@ export const PREFERRED_TRIM_SIZE = 500
 export const fetchUpdates = idbPersistence => {
   const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (idbPersistence.db), [updatesStoreName]) // , 'readonly')
   return idb.getAll(updatesStore, idb.createIDBKeyRangeLowerBound(idbPersistence._dbref, false)).then(updates =>
-      idbPersistence._mux(() =>
-        updates.forEach(val => Y.applyUpdate(idbPersistence.doc, val))
-      )
+    idbPersistence._mux(() =>
+      updates.forEach(val => Y.applyUpdate(idbPersistence.doc, val))
     )
-    .then(() => idb.getLastKey(updatesStore).then(lastKey => idbPersistence._dbref = lastKey + 1))
-    .then(() => idb.count(updatesStore).then(cnt => idbPersistence._dbsize = cnt))
+  )
+    .then(() => idb.getLastKey(updatesStore).then(lastKey => { idbPersistence._dbref = lastKey + 1 }))
+    .then(() => idb.count(updatesStore).then(cnt => { idbPersistence._dbsize = cnt }))
     .then(() => updatesStore)
 }
 
@@ -31,10 +28,10 @@ export const fetchUpdates = idbPersistence => {
  */
 export const storeState = idbPersistence =>
   fetchUpdates(idbPersistence)
-    .then(updatesStore => 
+    .then(updatesStore =>
       idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(idbPersistence.doc))
-      .then(() => idb.del(updatesStore, idb.createIDBKeyRangeUpperBound(idbPersistence._dbref, true)))
-      .then(() => idb.count(updatesStore).then(cnt => idbPersistence._dbsize = cnt))
+        .then(() => idb.del(updatesStore, idb.createIDBKeyRangeUpperBound(idbPersistence._dbref, true)))
+        .then(() => idb.count(updatesStore).then(cnt => { idbPersistence._dbsize = cnt }))
     )
 
 /**
