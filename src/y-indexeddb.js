@@ -1,176 +1,163 @@
 /* global indexedDB, location, BroadcastChannel */
 
-/*
- * Request to Promise transformer
+import * as idb from 'lib0/indexeddb.js'
+import * as promise from 'lib0/promise.js'
+import * as Y from 'yjs'
+import * as mutex from 'lib0/mutex.js'
+import { Observable } from 'lib0/observable.js'
+
+const customStoreName = 'custom'
+const updatesStoreName = 'updates'
+
+export const PREFERRED_TRIM_SIZE = 500
+
+/**
+ * @param {IndexedDBPersistence} idbPersistence
  */
-function rtop (request) {
-  return new Promise(function (resolve, reject) {
-    request.onerror = function (event) {
-      reject(new Error(event.target.error))
-    }
-    request.onblocked = function () {
-      location.reload()
-    }
-    request.onsuccess = function (event) {
-      resolve(event.target.result)
-    }
-  })
+export const fetchUpdates = idbPersistence => {
+  const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (idbPersistence.db), [updatesStoreName]) // , 'readonly')
+  return idb.getAll(updatesStore, idb.createIDBKeyRangeLowerBound(idbPersistence._dbref, false)).then(updates =>
+      idbPersistence._mux(() =>
+        updates.forEach(val => Y.applyUpdate(idbPersistence.doc, val))
+      )
+    )
+    .then(() => idb.getLastKey(updatesStore).then(lastKey => idbPersistence._dbref = lastKey + 1))
+    .then(() => idb.count(updatesStore).then(cnt => idbPersistence._dbsize = cnt))
+    .then(() => updatesStore)
 }
 
-function openDB (room) {
-  return new Promise(function (resolve, reject) {
-    let request = indexedDB.open(room)
-    window.r1 = request
-    request.onupgradeneeded = function (event) {
-      const db = event.target.result
-      if (db.objectStoreNames.contains('model')) {
-        db.deleteObjectStore('updates')
-        db.deleteObjectStore('model')
-        db.deleteObjectStore('custom')
-      }
-      db.createObjectStore('updates', {autoIncrement: true})
-      db.createObjectStore('model')
-      db.createObjectStore('custom')
-    }
-    request.onerror = function (event) {
-      reject(new Error(event.target.error))
-    }
-    request.onblocked = function () {
-      location.reload()
-    }
-    request.onsuccess = function (event) {
-      const db = event.target.result
-      db.onversionchange = function () { db.close() }
-      resolve(db)
-    }
-  })
-}
+/**
+ * @param {IndexedDBPersistence} idbPersistence
+ */
+export const storeState = idbPersistence =>
+  fetchUpdates(idbPersistence)
+    .then(updatesStore => 
+      idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(idbPersistence.doc))
+      .then(() => idb.del(updatesStore, idb.createIDBKeyRangeUpperBound(idbPersistence._dbref, true)))
+      .then(() => idb.count(updatesStore).then(cnt => idbPersistence._dbsize = cnt))
+    )
 
-const PREFERRED_TRIM_SIZE = 500
+/**
+ * @param {string} name
+ */
+export const clearDocument = name => idb.deleteDB(name)
 
-export default function extendYIndexedDBPersistence (Y) {
-  class IndexedDBPersistence extends Y.AbstractPersistence {
-    constructor (opts) {
-      super(opts)
-      window.addEventListener('unload', () => {
-        this.ys.forEach(function (cnf, y) {
-          if (cnf.db !== null) {
-            cnf.db.close()
-          } else {
-            cnf._db.then(db => db.close())
-          }
-        })
-      })
-    }
-    init (y) {
-      let cnf = this.ys.get(y)
-      let room = y.room
-      cnf.db = null
-      const dbOpened = openDB(room)
-      dbOpened.then(db => {
-        cnf.db = db
-      })
-      if (typeof BroadcastChannel !== 'undefined') {
-        cnf.channel = new BroadcastChannel('__yjs__' + room)
-        cnf.channel.addEventListener('message', e => {
-          cnf.mutualExclude(function () {
-            y.transact(function () {
-              Y.utils.integrateRemoteStructs(y, new Y.utils.BinaryDecoder(e.data))
-            }, true)
-          })
-        })
-      } else {
-        cnf.channel = null
-      }
-      return dbOpened
-    }
-
-    deinit (y) {
-      let cnf = this.ys.get(y)
-      cnf.db.close()
-      super.deinit(y)
-    }
-
-    set (y, key, value) {
-      const cnf = this.ys.get(y)
-      const t = cnf.db.transaction(['custom'], 'readwrite')
-      const customStore = t.objectStore('custom')
-      return rtop(customStore.put(value, key))
-    }
-
-    get (y, key) {
-      const cnf = this.ys.get(y)
-      const t = cnf.db.transaction(['custom'], 'readwrite')
-      const customStore = t.objectStore('custom')
-      return rtop(customStore.get(key))
-    }
-
+/**
+ * @extends Observable<string>
+ */
+export class IndexedDBPersistence extends Observable {
+  /**
+   * @param {string} name
+   * @param {Y.Doc} doc
+   */
+  constructor (name, doc) {
+    super()
+    this.doc = doc
+    this.name = name
+    this._mux = mutex.createMutex()
+    this._dbref = 0
+    this._dbsize = 0
     /**
-     * Remove all persisted data that belongs to a room.
-     * Automatically destroys all Yjs all Yjs instances that persist to
-     * the room. If `destroyYjsInstances = false` the persistence functionality
-     * will be removed from the Yjs instances.
+     * @type {IDBDatabase|null}
      */
-    removePersistedData (room, destroyYjsInstances = true) {
-      super.removePersistedData(room, destroyYjsInstances)
-      return rtop(indexedDB.deleteDatabase(room))
-    }
-
-    saveUpdate (y, update) {
-      let cnf = this.ys.get(y)
-      if (cnf.channel !== null) {
-        cnf.channel.postMessage(update)
-      }
-      let t = cnf.db.transaction(['updates'], 'readwrite')
-      let updatesStore = t.objectStore('updates')
-      updatesStore.put(update)
-      let cntP = rtop(updatesStore.count())
-      cntP.then(cnt => {
-        if (cnt >= PREFERRED_TRIM_SIZE) {
-          this.persist(y)
+    this.db = null
+    this.synced = false
+    this._db = idb.openDB(name, db =>
+      idb.createStores(db, [
+        ['updates', { autoIncrement: true }],
+        ['custom']
+      ])
+    )
+    /**
+     * @type {Promise<IndexedDBPersistence>}
+     */
+    this.whenSynced = this._db.then(db => {
+      this.db = db
+      const currState = Y.encodeStateAsUpdate(doc)
+      return fetchUpdates(this).then(updatesStore => idb.addAutoKey(updatesStore, currState)).then(() => {
+        this.emit('synced', [this])
+        this.synced = true
+        return this
+      })
+    })
+    /**
+     * Timeout in ms untill data is merged and persisted in idb.
+     */
+    this._storeTimeout = 1000
+    /**
+     * @type {any}
+     */
+    this._storeTimeoutId = null
+    /**
+     * @param {Uint8Array} update
+     */
+    this._storeUpdate = update =>
+      this._mux(() => {
+        const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (this.db), [updatesStoreName])
+        idb.addAutoKey(updatesStore, update)
+        if (++this._dbsize >= PREFERRED_TRIM_SIZE) {
+          if (this._storeTimeoutId !== null) {
+            clearTimeout(this._storeTimeoutId)
+          }
+          this._storeTimeoutId = setTimeout(() => {
+            storeState(this)
+            this._storeTimeoutId = null
+          }, this._storeTimeout)
         }
       })
-    }
-
-    saveStruct (y, struct) {
-      super.saveStruct(y, struct)
-    }
-
-    retrieve (y) {
-      let cnf = this.ys.get(y)
-      let t = cnf.db.transaction(['updates', 'model'], 'readonly')
-      let modelStore = t.objectStore('model')
-      let updatesStore = t.objectStore('updates')
-      return Promise.all([rtop(modelStore.get(0)), rtop(updatesStore.getAll())])
-        .then(([model, updates]) => {
-          super.retrieve(y, model, updates)
-        })
-    }
-
-    persist (y) {
-      let cnf = this.ys.get(y)
-      let db = cnf.db
-      let t = db.transaction(['updates', 'model'], 'readwrite')
-      let updatesStore = t.objectStore('updates')
-      return rtop(updatesStore.getAll())
-      .then(updates => {
-        // apply pending updates before deleting them
-        Y.AbstractPersistence.prototype.retrieve.call(this, y, null, updates)
-        // get binary model
-        let binaryModel = Y.AbstractPersistence.prototype.persist.call(this, y)
-        // delete all pending updates
-        if (updates.length > 0) {
-          let modelStore = t.objectStore('model')
-          modelStore.put(binaryModel, 0)
-          updatesStore.clear()
-        }
-      })
-    }
+    doc.on('update', this._storeUpdate)
   }
-  Y.IndexedDB = IndexedDBPersistence
-  return IndexedDBPersistence
-}
 
-if (typeof Y !== 'undefined') {
-  extendYIndexedDBPersistence(Y) // eslint-disable-line
+  destroy () {
+    if (this._storeTimeoutId) {
+      clearTimeout(this._storeTimeoutId)
+    }
+    this.doc.off('update', this._storeUpdate)
+    return this._db.then(db => {
+      db.close()
+    })
+  }
+
+  /**
+   * Destroys this instance and removes all data from indexeddb.
+   */
+  clearData () {
+    this.destroy().then(() => {
+      idb.deleteDB(this.name)
+    })
+  }
+
+  /**
+   * @param {String | number | ArrayBuffer | Date} key
+   * @return {Promise<String | number | ArrayBuffer | Date | any>}
+   */
+  get (key) {
+    return this._db.then(db => {
+      const [custom] = idb.transact(db, [customStoreName], 'readonly')
+      return idb.get(custom, key)
+    })
+  }
+
+  /**
+   * @param {String | number | ArrayBuffer | Date} key
+   * @param {String | number | ArrayBuffer | Date} value
+   * @return {Promise<String | number | ArrayBuffer | Date>}
+   */
+  set (key, value) {
+    return this._db.then(db => {
+      const [custom] = idb.transact(db, [customStoreName])
+      return idb.put(custom, key, value)
+    })
+  }
+
+  /**
+   * @param {String | number | ArrayBuffer | Date} key
+   * @return {Promise<undefined>}
+   */
+  del (key) {
+    return this._db.then(db => {
+      const [custom] = idb.transact(db, [customStoreName])
+      return idb.del(custom, key)
+    })
+  }
 }

@@ -1,2 +1,2 @@
-/node_modules/
-/y-indexeddb.*
+node_modules
+dist

@@ -2,61 +2,60 @@
   "name": "y-indexeddb",
   "version": "9.0.0-6",
   "description": "IndexedDB database adapter for Yjs",
-  "main": "./y-indexeddb.node.js",
-  "browser": "./y-indexeddb.js",
+  "main": "./dist/y-indexeddb.cjs",
   "module": "./src/y-indexeddb.js",
+  "sideEffects": false,
   "scripts": {
     "test": "npm run lint",
-    "dist": "rollup -c rollup.browser.js && rollup -c rollup.node.js",
-    "lint": "standard",
-    "watch": "concurrently 'rollup -wc rollup.browser.js' 'rollup -wc rollup.node.js'",
-    "postversion": "npm run dist",
-    "postpublish": "tag-dist-files --overwrite-existing-tag"
+    "dist": "rm -rf dist && rollup -c",
+    "lint": "markdownlint README.md && standard && tsc",
+    "preversion": "npm run lint && PRODUCTION=1 npm run dist"
   },
   "files": [
-    "y-indexeddb.*",
+    "dist/*",
     "src/*"
   ],
   "standard": {
     "ignore": [
-      "./y-indexeddb.*"
+      "/dist",
+      "/node_modules",
+      "/docs"
     ]
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/y-js/y-indexeddb.git"
+    "url": "git+https://github.com/yjs/y-indexeddb.git"
   },
   "keywords": [
     "Yjs",
-    "OT",
-    "Collaboration",
-    "Synchronization",
-    "ShareJS",
-    "Coweb",
-    "Concurrency"
+    "CRDT",
+    "offline",
+    "shared editing",
+    "collaboration",
+    "concurrency"
   ],
-  "author": "Kevin Jahns <kevin.jahns@rwth-aachen.de>",
+  "author": "Kevin Jahns <kevin.jahns@protonmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/y-js/yjs/issues"
+    "url": "https://github.com/yjs/y-indexeddb/issues"
   },
-  "homepage": "http://y-js.org",
+  "homepage": "https://yjs.dev",
+  "dependencies": {
+    "lib0": "^0.2.6"
+  },
   "devDependencies": {
-    "babel-plugin-external-helpers": "^6.22.0",
-    "babel-preset-latest": "^6.24.1",
-    "chance": "^1.0.10",
-    "concurrently": "^3.4.0",
-    "cutest": "^0.1.9",
-    "rollup-plugin-babel": "^2.7.1",
-    "rollup-plugin-commonjs": "^8.0.2",
-    "rollup-plugin-multi-entry": "^2.0.1",
-    "rollup-plugin-node-resolve": "^3.0.0",
-    "rollup-plugin-uglify": "^1.0.2",
-    "rollup-watch": "^3.2.2",
-    "standard": "^10.0.2",
-    "tag-dist-files": "^0.1.6"
+    "@rollup/plugin-commonjs": "^11.0.1",
+    "@rollup/plugin-node-resolve": "^7.0.0",
+    "concurrently": "^3.6.1",
+    "jsdoc": "^3.6.3",
+    "markdownlint-cli": "^0.19.0",
+    "rollup": "^1.29.0",
+    "standard": "^11.0.1",
+    "typescript": "^3.6.2",
+    "y-protocols": "^0.2.0",
+    "yjs": "^13.0.0-106"
   },
   "peerDependencies": {
-    "yjs": "^13.0.0-44"
+    "yjs": "^13.0.0-106"
   }
 }
