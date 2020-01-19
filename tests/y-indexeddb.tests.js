@@ -1,6 +1,6 @@
 
 import * as Y from 'yjs'
-import { IndexedDBPersistence, clearDocument, PREFERRED_TRIM_SIZE, fetchUpdates } from '../src/y-indexeddb.js'
+import { IndexeddbPersistence, clearDocument, PREFERRED_TRIM_SIZE, fetchUpdates } from '../src/y-indexeddb.js'
 import * as t from 'lib0/testing.js'
 import * as promise from 'lib0/promise.js'
 
@@ -14,11 +14,11 @@ export const testIdbUpdateAndMerge = async tc => {
   const doc2 = new Y.Doc()
   const arr2 = doc2.getArray('t')
   arr1.insert(0, [0])
-  const persistence1 = new IndexedDBPersistence(tc.testName, doc1)
+  const persistence1 = new IndexeddbPersistence(tc.testName, doc1)
   persistence1._storeTimeout = 0
   await persistence1.whenSynced
   arr1.insert(0, [1])
-  const persistence2 = new IndexedDBPersistence(tc.testName, doc2)
+  const persistence2 = new IndexeddbPersistence(tc.testName, doc2)
   persistence2._storeTimeout = 0
   await persistence2.whenSynced
   t.assert(arr2.length === 2)
@@ -41,11 +41,11 @@ export const testIdbConcurrentMerge = async tc => {
   const doc2 = new Y.Doc()
   const arr2 = doc2.getArray('t')
   arr1.insert(0, [0])
-  const persistence1 = new IndexedDBPersistence(tc.testName, doc1)
+  const persistence1 = new IndexeddbPersistence(tc.testName, doc1)
   persistence1._storeTimeout = 0
   await persistence1.whenSynced
   arr1.insert(0, [1])
-  const persistence2 = new IndexedDBPersistence(tc.testName, doc2)
+  const persistence2 = new IndexeddbPersistence(tc.testName, doc2)
   persistence2._storeTimeout = 0
   await persistence2.whenSynced
   t.assert(arr2.length === 2)

@@ -9,7 +9,7 @@ const updatesStoreName = 'updates'
 export const PREFERRED_TRIM_SIZE = 500
 
 /**
- * @param {IndexedDBPersistence} idbPersistence
+ * @param {IndexeddbPersistence} idbPersistence
  */
 export const fetchUpdates = idbPersistence => {
   const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (idbPersistence.db), [updatesStoreName]) // , 'readonly')
@@ -24,14 +24,17 @@ export const fetchUpdates = idbPersistence => {
 }
 
 /**
- * @param {IndexedDBPersistence} idbPersistence
+ * @param {IndexeddbPersistence} idbPersistence
  */
 export const storeState = idbPersistence =>
   fetchUpdates(idbPersistence)
-    .then(updatesStore =>
-      idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(idbPersistence.doc))
-        .then(() => idb.del(updatesStore, idb.createIDBKeyRangeUpperBound(idbPersistence._dbref, true)))
-        .then(() => idb.count(updatesStore).then(cnt => { idbPersistence._dbsize = cnt }))
+    .then(updatesStore => {
+      if (idbPersistence._dbsize >= PREFERRED_TRIM_SIZE) {
+        idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(idbPersistence.doc))
+          .then(() => idb.del(updatesStore, idb.createIDBKeyRangeUpperBound(idbPersistence._dbref, true)))
+          .then(() => idb.count(updatesStore).then(cnt => { idbPersistence._dbsize = cnt }))
+        }
+      }
     )
 
 /**
@@ -42,7 +45,7 @@ export const clearDocument = name => idb.deleteDB(name)
 /**
  * @extends Observable<string>
  */
-export class IndexedDBPersistence extends Observable {
+export class IndexeddbPersistence extends Observable {
   /**
    * @param {string} name
    * @param {Y.Doc} doc
@@ -66,7 +69,7 @@ export class IndexedDBPersistence extends Observable {
       ])
     )
     /**
-     * @type {Promise<IndexedDBPersistence>}
+     * @type {Promise<IndexeddbPersistence>}
      */
     this.whenSynced = this._db.then(db => {
       this.db = db
