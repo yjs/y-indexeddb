@@ -33,9 +33,8 @@ export const storeState = idbPersistence =>
         idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(idbPersistence.doc))
           .then(() => idb.del(updatesStore, idb.createIDBKeyRangeUpperBound(idbPersistence._dbref, true)))
           .then(() => idb.count(updatesStore).then(cnt => { idbPersistence._dbsize = cnt }))
-        }
       }
-    )
+    })
 
 /**
  * @param {string} name
