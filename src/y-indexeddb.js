@@ -92,16 +92,19 @@ export class IndexeddbPersistence extends Observable {
      */
     this._storeUpdate = update =>
       this._mux(() => {
-        const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (this.db), [updatesStoreName])
-        idb.addAutoKey(updatesStore, update)
-        if (++this._dbsize >= PREFERRED_TRIM_SIZE) {
-          if (this._storeTimeoutId !== null) {
-            clearTimeout(this._storeTimeoutId)
+        if (this.db) {
+          const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (this.db), [updatesStoreName])
+          idb.addAutoKey(updatesStore, update)
+          if (++this._dbsize >= PREFERRED_TRIM_SIZE) {
+            // debounce store call
+            if (this._storeTimeoutId !== null) {
+              clearTimeout(this._storeTimeoutId)
+            }
+            this._storeTimeoutId = setTimeout(() => {
+              storeState(this)
+              this._storeTimeoutId = null
+            }, this._storeTimeout)
           }
-          this._storeTimeoutId = setTimeout(() => {
-            storeState(this)
-            this._storeTimeoutId = null
-          }, this._storeTimeout)
         }
       })
     doc.on('update', this._storeUpdate)
