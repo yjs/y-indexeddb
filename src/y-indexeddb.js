@@ -1,5 +1,5 @@
-import * as idb from 'lib0/indexeddb.js'
 import * as Y from 'yjs'
+import * as idb from 'lib0/indexeddb.js'
 import * as mutex from 'lib0/mutex.js'
 import { Observable } from 'lib0/observable.js'
 
@@ -25,11 +25,12 @@ export const fetchUpdates = idbPersistence => {
 
 /**
  * @param {IndexeddbPersistence} idbPersistence
+ * @param {boolean} forceStore
  */
-export const storeState = idbPersistence =>
+export const storeState = (idbPersistence, forceStore = true) =>
   fetchUpdates(idbPersistence)
     .then(updatesStore => {
-      if (idbPersistence._dbsize >= PREFERRED_TRIM_SIZE) {
+      if (forceStore || idbPersistence._dbsize >= PREFERRED_TRIM_SIZE) {
         idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(idbPersistence.doc))
           .then(() => idb.del(updatesStore, idb.createIDBKeyRangeUpperBound(idbPersistence._dbref, true)))
           .then(() => idb.count(updatesStore).then(cnt => { idbPersistence._dbsize = cnt }))
@@ -101,7 +102,7 @@ export class IndexeddbPersistence extends Observable {
               clearTimeout(this._storeTimeoutId)
             }
             this._storeTimeoutId = setTimeout(() => {
-              storeState(this)
+              storeState(this, false)
               this._storeTimeoutId = null
             }, this._storeTimeout)
           }

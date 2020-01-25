@@ -2,14 +2,18 @@
   "name": "y-indexeddb",
   "version": "9.0.2",
   "description": "IndexedDB database adapter for Yjs",
-  "main": "./dist/y-indexeddb.cjs",
+  "type": "module",
+  "main": "./src/y-indexeddb.js",
   "module": "./src/y-indexeddb.js",
+  "types": "./dist/src/y-indexeddb.d.ts",
   "sideEffects": false,
   "scripts": {
+    "clean": "rm -rf dist",
     "test": "npm run lint",
-    "dist": "rm -rf dist && rollup -c",
-    "lint": "markdownlint README.md && standard",
-    "preversion": "npm run lint && PRODUCTION=1 npm run dist"
+    "dist": "rollup -c",
+    "lint": "markdownlint README.md && standard && tsc",
+    "preversion": "npm run clean && npm run lint && npm run dist",
+    "debug": "concurrently 'rollup -wc' 'http-server -o .'"
   },
   "files": [
     "dist/*",
@@ -41,21 +45,22 @@
   },
   "homepage": "https://yjs.dev",
   "dependencies": {
-    "lib0": "^0.2.6"
+    "lib0": "^0.2.12"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^11.0.1",
     "@rollup/plugin-node-resolve": "^7.0.0",
     "concurrently": "^3.6.1",
+    "http-server": "^0.12.1",
     "jsdoc": "^3.6.3",
     "markdownlint-cli": "^0.19.0",
-    "rollup": "^1.29.0",
+    "rollup": "^1.29.1",
     "standard": "^11.0.1",
-    "typescript": "^3.6.2",
+    "typescript": "^3.7.5",
     "y-protocols": "^0.2.0",
-    "yjs": "^13.0.0-106"
+    "yjs": "^13.0.0"
   },
   "peerDependencies": {
-    "yjs": "^13.0.0-106"
+    "yjs": "^13.0.0"
   }
 }
