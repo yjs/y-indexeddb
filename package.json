@@ -3,7 +3,7 @@
   "version": "9.0.3",
   "description": "IndexedDB database adapter for Yjs",
   "type": "module",
-  "main": "./src/y-indexeddb.js",
+  "main": "./dist/y-indexeddb.cjs",
   "module": "./src/y-indexeddb.js",
   "types": "./dist/src/y-indexeddb.d.ts",
   "sideEffects": false,
