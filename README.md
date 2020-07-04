@@ -1,4 +1,4 @@
-# IndexedDB database adapter for [Yjs](https://github.com/y-js/yjs)
+# IndexedDB database adapter for [Yjs](https://github.com/yjs/yjs)
 
 Use the IndexedDB database adapter to store your shared data persistently in
 the browser. The next time you join the session, your changes will still be

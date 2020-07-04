@@ -7,6 +7,10 @@
   "module": "./src/y-indexeddb.js",
   "types": "./dist/src/y-indexeddb.d.ts",
   "sideEffects": false,
+  "funding": {
+    "type": "GitHub Sponsors ❤",
+    "url": "https://github.com/sponsors/dmonad"
+  },
   "scripts": {
     "clean": "rm -rf dist",
     "test": "npm run lint",
