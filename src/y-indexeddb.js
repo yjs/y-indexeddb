@@ -149,7 +149,7 @@ export class IndexeddbPersistence extends Observable {
   set (key, value) {
     return this._db.then(db => {
       const [custom] = idb.transact(db, [customStoreName])
-      return idb.put(custom, key, value)
+      return idb.put(custom, value, key)
     })
   }
 

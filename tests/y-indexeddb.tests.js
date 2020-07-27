@@ -64,3 +64,22 @@ export const testIdbConcurrentMerge = async tc => {
   t.assert(persistence2._dbsize < 10)
   t.compareArrays(arr1.toArray(), arr2.toArray())
 }
+
+/**
+ * @param {t.TestCase} tc
+ */
+export const testMetaStorage = async tc => {
+  await clearDocument(tc.testName)
+  const ydoc = new Y.Doc()
+  const persistence = new IndexeddbPersistence(tc.testName, ydoc)
+  persistence.set('a', 4)
+  persistence.set(4, 'meta!')
+  // @ts-ignore
+  persistence.set('obj', { a: 4 })
+  const resA = await persistence.get('a')
+  t.assert(resA === 4)
+  const resB = await persistence.get(4)
+  t.assert(resB === 'meta!')
+  const resC = await persistence.get('obj')
+  t.compareObjects(resC, { a: 4 })
+}
