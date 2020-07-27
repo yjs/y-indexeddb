@@ -15,7 +15,9 @@ export const fetchUpdates = idbPersistence => {
   const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (idbPersistence.db), [updatesStoreName]) // , 'readonly')
   return idb.getAll(updatesStore, idb.createIDBKeyRangeLowerBound(idbPersistence._dbref, false)).then(updates =>
     idbPersistence._mux(() =>
-      updates.forEach(val => Y.applyUpdate(idbPersistence.doc, val))
+      idbPersistence.doc.transact(() =>
+        updates.forEach(val => Y.applyUpdate(idbPersistence.doc, val))
+      )
     )
   )
     .then(() => idb.getLastKey(updatesStore).then(lastKey => { idbPersistence._dbref = lastKey + 1 }))
