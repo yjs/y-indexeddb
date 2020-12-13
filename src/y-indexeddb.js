@@ -111,6 +111,8 @@ export class IndexeddbPersistence extends Observable {
         }
       })
     doc.on('update', this._storeUpdate)
+    this.destroy = this.destroy.bind(this)
+    doc.on('destroy', this.destroy)
   }
 
   destroy () {
@@ -118,6 +120,7 @@ export class IndexeddbPersistence extends Observable {
       clearTimeout(this._storeTimeoutId)
     }
     this.doc.off('update', this._storeUpdate)
+    this.doc.off('destroy', this.destroy)
     return this._db.then(db => {
       db.close()
     })
