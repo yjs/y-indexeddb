@@ -11,7 +11,7 @@ there.
 
 ## Getting Started
 
-API documentation: https://docs.yjs.dev/ecosystem/database-provider/y-indexeddb
+You find the complete documentation published online: [API documentation](https://docs.yjs.dev/ecosystem/database-provider/y-indexeddb).
 
 ```sh
 npm i --save y-indexeddb
