@@ -128,9 +128,11 @@ export class IndexeddbPersistence extends Observable {
 
   /**
    * Destroys this instance and removes all data from indexeddb.
+   *
+   * @return {Promise<void>}
    */
   clearData () {
-    this.destroy().then(() => {
+    return this.destroy().then(() => {
       idb.deleteDB(this.name)
     })
   }
