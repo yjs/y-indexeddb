@@ -2,6 +2,7 @@ import * as Y from 'yjs'
 import * as idb from 'lib0/indexeddb.js'
 import * as mutex from 'lib0/mutex.js'
 import { Observable } from 'lib0/observable.js'
+import * as promise from 'lib0/promise.js'
 
 const customStoreName = 'custom'
 const updatesStoreName = 'updates'
@@ -73,15 +74,19 @@ export class IndexeddbPersistence extends Observable {
     /**
      * @type {Promise<IndexeddbPersistence>}
      */
-    this.whenSynced = this._db.then(db => {
-      this.db = db
-      const currState = Y.encodeStateAsUpdate(doc)
-      return fetchUpdates(this).then(updatesStore => idb.addAutoKey(updatesStore, currState)).then(() => {
-        this.emit('synced', [this])
-        this.synced = true
-        return this
-      })
+    this.whenSynced = promise.create((resolve, reject) => {
+      this._db.then(db => {
+            this.db = db
+            resolve(this)
+            const currState = Y.encodeStateAsUpdate(doc)
+            return fetchUpdates(this).then(updatesStore => idb.addAutoKey(updatesStore, currState)).then(() => {
+              this.emit('synced', [this])
+              this.synced = true
+              return this
+            })
+          }).catch(reject)
     })
+    this.whenSynced.catch(err => { this.emit('error', [err]) })
     /**
      * Timeout in ms untill data is merged and persisted in idb.
      */
