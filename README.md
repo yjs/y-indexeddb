@@ -34,7 +34,7 @@ Create a y-indexeddb persistence provider. Specify docName as a unique string
 that identifies this document. In most cases, you want to use the same identifier
 that is used as the room-name in the connection provider.
   </dd>
-  <b><code>provider.on('synced'', function(idbPersistence: IndexeddbPersistence))</code></b>
+  <b><code>provider.on('synced', function(idbPersistence: IndexeddbPersistence))</code></b>
   <dd>
 The "synced" event is fired when the connection to the database has been established
 and all available content has been loaded. The event is also fired when no content
