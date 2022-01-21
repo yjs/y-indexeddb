@@ -20,7 +20,15 @@ export const testIdbUpdateAndMerge = async tc => {
   arr1.insert(0, [1])
   const persistence2 = new IndexeddbPersistence(tc.testName, doc2)
   persistence2._storeTimeout = 0
+  let calledObserver = false
+  // @ts-ignore
+  arr2.observe((event, tr, origin) => {
+    t.assert(!tr.local)
+    t.assert(origin === persistence2)
+    calledObserver = true
+  })
   await persistence2.whenSynced
+  t.assert(calledObserver)
   t.assert(arr2.length === 2)
   for (let i = 2; i < PREFERRED_TRIM_SIZE + 1; i++) {
     arr1.insert(i, [i])
