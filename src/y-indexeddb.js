@@ -14,11 +14,9 @@ export const PREFERRED_TRIM_SIZE = 500
 export const fetchUpdates = idbPersistence => {
   const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (idbPersistence.db), [updatesStoreName]) // , 'readonly')
   return idb.getAll(updatesStore, idb.createIDBKeyRangeLowerBound(idbPersistence._dbref, false)).then(updates =>
-    idbPersistence._mux(() =>
-      Y.transact(idbPersistence.doc, () => {
-        updates.forEach(val => Y.applyUpdate(idbPersistence.doc, val))
-      }, idbPersistence, false)
-    )
+    Y.transact(idbPersistence.doc, () => {
+      updates.forEach(val => Y.applyUpdate(idbPersistence.doc, val))
+    }, idbPersistence, false)
   )
     .then(() => idb.getLastKey(updatesStore).then(lastKey => { idbPersistence._dbref = lastKey + 1 }))
     .then(() => idb.count(updatesStore).then(cnt => { idbPersistence._dbsize = cnt }))
@@ -92,24 +90,24 @@ export class IndexeddbPersistence extends Observable {
     this._storeTimeoutId = null
     /**
      * @param {Uint8Array} update
+     * @param {any} origin
      */
-    this._storeUpdate = update =>
-      this._mux(() => {
-        if (this.db) {
-          const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (this.db), [updatesStoreName])
-          idb.addAutoKey(updatesStore, update)
-          if (++this._dbsize >= PREFERRED_TRIM_SIZE) {
-            // debounce store call
-            if (this._storeTimeoutId !== null) {
-              clearTimeout(this._storeTimeoutId)
-            }
-            this._storeTimeoutId = setTimeout(() => {
-              storeState(this, false)
-              this._storeTimeoutId = null
-            }, this._storeTimeout)
+    this._storeUpdate = (update, origin) => {
+      if (this.db && origin !== this) {
+        const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (this.db), [updatesStoreName])
+        idb.addAutoKey(updatesStore, update)
+        if (++this._dbsize >= PREFERRED_TRIM_SIZE) {
+          // debounce store call
+          if (this._storeTimeoutId !== null) {
+            clearTimeout(this._storeTimeoutId)
           }
+          this._storeTimeoutId = setTimeout(() => {
+            storeState(this, false)
+            this._storeTimeoutId = null
+          }, this._storeTimeout)
         }
-      })
+      }
+    }
     doc.on('update', this._storeUpdate)
     this.destroy = this.destroy.bind(this)
     doc.on('destroy', this.destroy)

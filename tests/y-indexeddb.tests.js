@@ -22,9 +22,9 @@ export const testIdbUpdateAndMerge = async tc => {
   persistence2._storeTimeout = 0
   let calledObserver = false
   // @ts-ignore
-  arr2.observe((event, tr, origin) => {
+  arr2.observe((event, tr) => {
     t.assert(!tr.local)
-    t.assert(origin === persistence2)
+    t.assert(tr.origin === persistence2)
     calledObserver = true
   })
   await persistence2.whenSynced
