@@ -57,6 +57,7 @@ export class IndexeddbPersistence extends Observable {
     this._mux = mutex.createMutex()
     this._dbref = 0
     this._dbsize = 0
+    this._destroyed = false
     /**
      * @type {IDBDatabase|null}
      */
@@ -75,6 +76,7 @@ export class IndexeddbPersistence extends Observable {
       this.db = db
       const currState = Y.encodeStateAsUpdate(doc)
       return fetchUpdates(this).then(updatesStore => idb.addAutoKey(updatesStore, currState)).then(() => {
+        if (this._destroyed) return this
         this.emit('synced', [this])
         this.synced = true
         return this
@@ -119,6 +121,7 @@ export class IndexeddbPersistence extends Observable {
     }
     this.doc.off('update', this._storeUpdate)
     this.doc.off('destroy', this.destroy)
+    this._destroyed = true
     return this._db.then(db => {
       db.close()
     })

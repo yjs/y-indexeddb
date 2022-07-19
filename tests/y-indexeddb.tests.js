@@ -91,3 +91,18 @@ export const testMetaStorage = async tc => {
   const resC = await persistence.get('obj')
   t.compareObjects(resC, { a: 4 })
 }
+
+/**
+ * @param {t.TestCase} tc
+ */
+export const testEarlyDestroy = async tc => {
+  let hasbeenSyced = false
+  const ydoc = new Y.Doc()
+  const indexDBProvider = new IndexeddbPersistence(tc.testName, ydoc)
+  indexDBProvider.on('synced', () => {
+    hasbeenSyced = true
+  })
+  indexDBProvider.destroy()
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  t.assert(!hasbeenSyced)
+}
