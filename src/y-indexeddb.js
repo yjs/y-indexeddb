@@ -1,6 +1,5 @@
 import * as Y from 'yjs'
 import * as idb from 'lib0/indexeddb.js'
-import * as mutex from 'lib0/mutex.js'
 import { Observable } from 'lib0/observable.js'
 
 const customStoreName = 'custom'
@@ -54,7 +53,6 @@ export class IndexeddbPersistence extends Observable {
     super()
     this.doc = doc
     this.name = name
-    this._mux = mutex.createMutex()
     this._dbref = 0
     this._dbsize = 0
     this._destroyed = false
