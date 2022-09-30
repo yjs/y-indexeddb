@@ -9,14 +9,16 @@ export const PREFERRED_TRIM_SIZE = 500
 
 /**
  * @param {IndexeddbPersistence} idbPersistence
+ * @param {function(IDBObjectStore):void} [beforeApplyUpdatesCallback]
  */
-export const fetchUpdates = idbPersistence => {
+export const fetchUpdates = (idbPersistence, beforeApplyUpdatesCallback = () => {}) => {
   const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (idbPersistence.db), [updatesStoreName]) // , 'readonly')
-  return idb.getAll(updatesStore, idb.createIDBKeyRangeLowerBound(idbPersistence._dbref, false)).then(updates =>
+  return idb.getAll(updatesStore, idb.createIDBKeyRangeLowerBound(idbPersistence._dbref, false)).then(updates => {
+    beforeApplyUpdatesCallback(updatesStore)
     Y.transact(idbPersistence.doc, () => {
       updates.forEach(val => Y.applyUpdate(idbPersistence.doc, val))
     }, idbPersistence, false)
-  )
+  })
     .then(() => idb.getLastKey(updatesStore).then(lastKey => { idbPersistence._dbref = lastKey + 1 }))
     .then(() => idb.count(updatesStore).then(cnt => { idbPersistence._dbsize = cnt }))
     .then(() => updatesStore)
@@ -72,8 +74,11 @@ export class IndexeddbPersistence extends Observable {
      */
     this.whenSynced = this._db.then(db => {
       this.db = db
-      const currState = Y.encodeStateAsUpdate(doc)
-      return fetchUpdates(this).then(updatesStore => idb.addAutoKey(updatesStore, currState)).then(() => {
+      /**
+       * @param {IDBObjectStore} updatesStore
+       */
+      const beforeApplyUpdatesCallback = (updatesStore) => idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(doc))
+      return fetchUpdates(this, beforeApplyUpdatesCallback).then(() => {
         if (this._destroyed) return this
         this.emit('synced', [this])
         this.synced = true
