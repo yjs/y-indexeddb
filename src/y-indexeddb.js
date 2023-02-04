@@ -80,6 +80,7 @@ export class IndexeddbPersistence extends Observable {
       const beforeApplyUpdatesCallback = (updatesStore) => idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(doc))
       return fetchUpdates(this, beforeApplyUpdatesCallback).then(() => {
         if (this._destroyed) return this
+        this.doc.emit('load', [this.doc])
         this.emit('synced', [this])
         this.synced = true
         return this
