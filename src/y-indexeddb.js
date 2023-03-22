@@ -98,7 +98,7 @@ export class IndexeddbPersistence extends Observable {
      * @param {any} origin
      */
     this._storeUpdate = (update, origin) => {
-      if (this.db && origin !== this) {
+      if (this.db && !(origin instanceof IndexeddbPersistence)) {
         const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (this.db), [updatesStoreName])
         idb.addAutoKey(updatesStore, update)
         if (++this._dbsize >= PREFERRED_TRIM_SIZE) {
