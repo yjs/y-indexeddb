@@ -98,6 +98,13 @@ export class IndexeddbPersistence extends Observable {
      * @param {any} origin
      */
     this._storeUpdate = (update, origin) => {
+      // ignore updates from other indexeddb instance
+      if (origin instanceof IndexeddbPersistence) {
+        if (origin._destroyed) {
+          return
+        }
+      }
+
       if (this.db && origin !== this) {
         const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (this.db), [updatesStoreName])
         idb.addAutoKey(updatesStore, update)
