@@ -14,10 +14,12 @@ export const PREFERRED_TRIM_SIZE = 500
 export const fetchUpdates = (idbPersistence, beforeApplyUpdatesCallback = () => {}) => {
   const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (idbPersistence.db), [updatesStoreName]) // , 'readonly')
   return idb.getAll(updatesStore, idb.createIDBKeyRangeLowerBound(idbPersistence._dbref, false)).then(updates => {
-    beforeApplyUpdatesCallback(updatesStore)
-    Y.transact(idbPersistence.doc, () => {
-      updates.forEach(val => Y.applyUpdate(idbPersistence.doc, val))
-    }, idbPersistence, false)
+    if (!idbPersistence._destroyed) {
+      beforeApplyUpdatesCallback(updatesStore)
+      Y.transact(idbPersistence.doc, () => {
+        updates.forEach(val => Y.applyUpdate(idbPersistence.doc, val))
+      }, idbPersistence, false)
+    }
   })
     .then(() => idb.getLastKey(updatesStore).then(lastKey => { idbPersistence._dbref = lastKey + 1 }))
     .then(() => idb.count(updatesStore).then(cnt => { idbPersistence._dbsize = cnt }))
