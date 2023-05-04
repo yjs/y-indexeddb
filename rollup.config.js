@@ -18,13 +18,7 @@ export default [{
     name: 'Y',
     file: 'dist/y-indexeddb.cjs',
     format: 'cjs',
-    sourcemap: true,
-    paths: path => {
-      if (/^lib0\//.test(path)) {
-        return `lib0/dist/${path.slice(5, -3)}.cjs`
-      }
-      return path
-    }
+    sourcemap: true
   },
   external: id => /^(lib0|yjs)\//.test(id)
 }]
