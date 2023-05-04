@@ -1,6 +1,7 @@
 import * as Y from 'yjs'
-import * as idb from 'lib0/indexeddb.js'
-import { Observable } from 'lib0/observable.js'
+import * as idb from 'lib0/indexeddb'
+import * as promise from 'lib0/promise'
+import { Observable } from 'lib0/observable'
 
 const customStoreName = 'custom'
 const updatesStoreName = 'updates'
@@ -10,8 +11,9 @@ export const PREFERRED_TRIM_SIZE = 500
 /**
  * @param {IndexeddbPersistence} idbPersistence
  * @param {function(IDBObjectStore):void} [beforeApplyUpdatesCallback]
+ * @param {function(IDBObjectStore):void} [afterApplyUpdatesCallback]
  */
-export const fetchUpdates = (idbPersistence, beforeApplyUpdatesCallback = () => {}) => {
+export const fetchUpdates = (idbPersistence, beforeApplyUpdatesCallback = () => {}, afterApplyUpdatesCallback = () => {}) => {
   const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (idbPersistence.db), [updatesStoreName]) // , 'readonly')
   return idb.getAll(updatesStore, idb.createIDBKeyRangeLowerBound(idbPersistence._dbref, false)).then(updates => {
     if (!idbPersistence._destroyed) {
@@ -19,6 +21,7 @@ export const fetchUpdates = (idbPersistence, beforeApplyUpdatesCallback = () => 
       Y.transact(idbPersistence.doc, () => {
         updates.forEach(val => Y.applyUpdate(idbPersistence.doc, val))
       }, idbPersistence, false)
+      afterApplyUpdatesCallback(updatesStore)
     }
   })
     .then(() => idb.getLastKey(updatesStore).then(lastKey => { idbPersistence._dbref = lastKey + 1 }))
@@ -74,18 +77,20 @@ export class IndexeddbPersistence extends Observable {
     /**
      * @type {Promise<IndexeddbPersistence>}
      */
-    this.whenSynced = this._db.then(db => {
+    this.whenSynced = promise.create(resolve => this.on('synced', () => resolve(this)))
+
+    this._db.then(db => {
       this.db = db
       /**
        * @param {IDBObjectStore} updatesStore
        */
       const beforeApplyUpdatesCallback = (updatesStore) => idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(doc))
-      return fetchUpdates(this, beforeApplyUpdatesCallback).then(() => {
+      const afterApplyUpdatesCallback = () => {
         if (this._destroyed) return this
-        this.emit('synced', [this])
         this.synced = true
-        return this
-      })
+        this.emit('synced', [this])
+      }
+      fetchUpdates(this, beforeApplyUpdatesCallback, afterApplyUpdatesCallback)
     })
     /**
      * Timeout in ms untill data is merged and persisted in idb.
