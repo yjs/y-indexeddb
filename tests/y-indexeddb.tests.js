@@ -7,6 +7,18 @@ import * as promise from 'lib0/promise.js'
 /**
  * @param {t.TestCase} tc
  */
+export const testPerf = async tc => {
+  await t.measureTimeAsync('time to create a y-indexeddb instance', async () => {
+    const ydoc = new Y.Doc()
+    const provider = new IndexeddbPersistence(tc.testName, ydoc)
+    await provider.whenSynced
+    provider.destroy()
+  })
+}
+
+/**
+ * @param {t.TestCase} tc
+ */
 export const testIdbUpdateAndMerge = async tc => {
   await clearDocument(tc.testName)
   const doc1 = new Y.Doc()
