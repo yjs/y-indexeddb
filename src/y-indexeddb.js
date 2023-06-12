@@ -24,7 +24,6 @@ export const fetchUpdates = (idbPersistence, beforeApplyUpdatesCallback = () => 
       afterApplyUpdatesCallback(updatesStore)
     }
   })
-    .then(() => idb.getLastKey(updatesStore).then(lastKey => { idbPersistence._dbref = lastKey + 1 }))
     .then(() => idb.count(updatesStore).then(cnt => { idbPersistence._dbsize = cnt }))
     .then(() => updatesStore)
 }
@@ -38,7 +37,10 @@ export const storeState = (idbPersistence, forceStore = true) =>
     .then(updatesStore => {
       if (forceStore || idbPersistence._dbsize >= PREFERRED_TRIM_SIZE) {
         idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(idbPersistence.doc))
-          .then(() => idb.del(updatesStore, idb.createIDBKeyRangeUpperBound(idbPersistence._dbref, true)))
+          .then((key) => {
+            idbPersistence._dbref = key
+            return idb.del(updatesStore, idb.createIDBKeyRangeUpperBound(key, true))
+          })
           .then(() => idb.count(updatesStore).then(cnt => { idbPersistence._dbsize = cnt }))
       }
     })
@@ -84,7 +86,10 @@ export class IndexeddbPersistence extends Observable {
       /**
        * @param {IDBObjectStore} updatesStore
        */
-      const beforeApplyUpdatesCallback = (updatesStore) => idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(doc))
+      const beforeApplyUpdatesCallback = async (updatesStore) => {
+        const key = await idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(doc))
+        this._dbref = key
+      }
       const afterApplyUpdatesCallback = () => {
         if (this._destroyed) return this
         this.synced = true
@@ -107,7 +112,9 @@ export class IndexeddbPersistence extends Observable {
     this._storeUpdate = (update, origin) => {
       if (this.db && origin !== this) {
         const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (this.db), [updatesStoreName])
-        idb.addAutoKey(updatesStore, update)
+        idb.addAutoKey(updatesStore, update).then(key => {
+          this._dbref = key
+        })
         if (++this._dbsize >= PREFERRED_TRIM_SIZE) {
           // debounce store call
           if (this._storeTimeoutId !== null) {
