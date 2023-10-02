@@ -6,7 +6,7 @@ import { Observable } from 'lib0/observable'
 const customStoreName = 'custom'
 const updatesStoreName = 'updates'
 
-export const PREFERRED_TRIM_SIZE = 500
+export const DEFAULT_PREFERRED_TRIM_SIZE = 500
 
 /**
  * @param {IndexeddbPersistence} idbPersistence
@@ -36,7 +36,7 @@ export const fetchUpdates = (idbPersistence, beforeApplyUpdatesCallback = () => 
 export const storeState = (idbPersistence, forceStore = true) =>
   fetchUpdates(idbPersistence)
     .then(updatesStore => {
-      if (forceStore || idbPersistence._dbsize >= PREFERRED_TRIM_SIZE) {
+      if (forceStore || idbPersistence._dbsize >= idbPersistence.PREFERRED_TRIM_SIZE) {
         idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(idbPersistence.doc))
           .then(() => idb.del(updatesStore, idb.createIDBKeyRangeUpperBound(idbPersistence._dbref, true)))
           .then(() => idb.count(updatesStore).then(cnt => { idbPersistence._dbsize = cnt }))
@@ -55,14 +55,17 @@ export class IndexeddbPersistence extends Observable {
   /**
    * @param {string} name
    * @param {Y.Doc} doc
+   * @param {Object} [options={}]
+   * @param {number} [options.PREFERRED_TRIM_SIZE=500]
    */
-  constructor (name, doc) {
+  constructor (name, doc, options = {}) {
     super()
     this.doc = doc
     this.name = name
     this._dbref = 0
     this._dbsize = 0
     this._destroyed = false
+    this.PREFERRED_TRIM_SIZE = options.PREFERRED_TRIM_SIZE || DEFAULT_PREFERRED_TRIM_SIZE
     /**
      * @type {IDBDatabase|null}
      */
@@ -108,7 +111,7 @@ export class IndexeddbPersistence extends Observable {
       if (this.db && origin !== this) {
         const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (this.db), [updatesStoreName])
         idb.addAutoKey(updatesStore, update)
-        if (++this._dbsize >= PREFERRED_TRIM_SIZE) {
+        if (++this._dbsize >= this.PREFERRED_TRIM_SIZE) {
           // debounce store call
           if (this._storeTimeoutId !== null) {
             clearTimeout(this._storeTimeoutId)
