@@ -1,6 +1,6 @@
 {
   "name": "y-indexeddb",
-  "version": "9.0.11",
+  "version": "1.0.0-napkin",
   "description": "IndexedDB database adapter for Yjs",
   "type": "module",
   "main": "./dist/y-indexeddb.cjs",
