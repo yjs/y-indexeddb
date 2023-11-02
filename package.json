@@ -23,6 +23,16 @@
     "dist/*",
     "src/*"
   ],
+  "exports": {
+    ".": {
+      "types": "./dist/src/y-indexeddb.d.ts",
+      "module": "./src/y-indexeddb.js",
+      "import": "./src/y-indexeddb.js",
+      "require": "./dist/y-indexeddb.cjs",
+      "default": "./src/y-indexeddb.js"
+    },
+    "./package.json": "./package.json"
+  },
   "standard": {
     "ignore": [
       "/dist",
