@@ -37,8 +37,8 @@ that is used as the room-name in the connection provider.
   <b><code>provider.on('synced', function(idbPersistence: IndexeddbPersistence))</code></b>
   <dd>
 The "synced" event is fired when the connection to the database has been established
-and all available content has been loaded. The event is also fired when no content
-is available yet.
+and all available content has been loaded. The event is also fired if no content
+is found for the given doc name.
   </dd>
   <b><code>provider.set(key: any, value: any): Promise&lt;any&gt;</code></b>
   <dd>
