@@ -93,7 +93,7 @@ export class IndexeddbPersistence extends Observable {
       fetchUpdates(this, beforeApplyUpdatesCallback, afterApplyUpdatesCallback)
     })
     /**
-     * Timeout in ms untill data is merged and persisted in idb.
+     * Timeout in ms until data is merged and persisted in idb.
      */
     this._storeTimeout = 1000
     /**
