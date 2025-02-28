@@ -1,6 +1,6 @@
 
 import * as Y from 'yjs'
-import { IndexeddbPersistence, clearDocument, PREFERRED_TRIM_SIZE, fetchUpdates } from '../src/y-indexeddb.js'
+import { IndexeddbPersistence, clearDocument, DEFAULT_PREFERRED_TRIM_SIZE, fetchUpdates } from '../src/y-indexeddb.js'
 import * as t from 'lib0/testing.js'
 import * as promise from 'lib0/promise.js'
 
@@ -42,12 +42,12 @@ export const testIdbUpdateAndMerge = async tc => {
   await persistence2.whenSynced
   t.assert(calledObserver)
   t.assert(arr2.length === 2)
-  for (let i = 2; i < PREFERRED_TRIM_SIZE + 1; i++) {
+  for (let i = 2; i < DEFAULT_PREFERRED_TRIM_SIZE + 1; i++) {
     arr1.insert(i, [i])
   }
   await promise.wait(100)
   await fetchUpdates(persistence2)
-  t.assert(arr2.length === PREFERRED_TRIM_SIZE + 1)
+  t.assert(arr2.length === DEFAULT_PREFERRED_TRIM_SIZE + 1)
   t.assert(persistence1._dbsize === 1) // wait for dbsize === 0. db should be concatenated
 }
 
@@ -70,11 +70,11 @@ export const testIdbConcurrentMerge = async tc => {
   await persistence2.whenSynced
   t.assert(arr2.length === 2)
   arr1.insert(0, ['left'])
-  for (let i = 0; i < PREFERRED_TRIM_SIZE + 1; i++) {
+  for (let i = 0; i < DEFAULT_PREFERRED_TRIM_SIZE + 1; i++) {
     arr1.insert(i, [i])
   }
   arr2.insert(0, ['right'])
-  for (let i = 0; i < PREFERRED_TRIM_SIZE + 1; i++) {
+  for (let i = 0; i < DEFAULT_PREFERRED_TRIM_SIZE + 1; i++) {
     arr2.insert(i, [i])
   }
   await promise.wait(100)
