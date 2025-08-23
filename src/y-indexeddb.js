@@ -90,10 +90,13 @@ export class IndexeddbPersistence extends Observable {
         this.synced = true
         this.emit('synced', [this])
       }
-      fetchUpdates(this, beforeApplyUpdatesCallback, afterApplyUpdatesCallback)
+      return fetchUpdates(this, beforeApplyUpdatesCallback, afterApplyUpdatesCallback)
+    })
+    .catch(err => {
+      this.emit('error', [err])
     })
     /**
-     * Timeout in ms until data is merged and persisted in idb.
+     * Timeout in ms untill data is merged and persisted in idb.
      */
     this._storeTimeout = 1000
     /**
@@ -114,7 +117,9 @@ export class IndexeddbPersistence extends Observable {
             clearTimeout(this._storeTimeoutId)
           }
           this._storeTimeoutId = setTimeout(() => {
-            storeState(this, false)
+            storeState(this, false).catch(err => {
+              this.emit('error', [err])
+            })
             this._storeTimeoutId = null
           }, this._storeTimeout)
         }
@@ -134,6 +139,8 @@ export class IndexeddbPersistence extends Observable {
     this._destroyed = true
     return this._db.then(db => {
       db.close()
+    }).catch(err => {
+      this.emit('error', [err])
     })
   }
 
@@ -145,6 +152,8 @@ export class IndexeddbPersistence extends Observable {
   clearData () {
     return this.destroy().then(() => {
       idb.deleteDB(this.name)
+    }).catch(err => {
+      this.emit('error', [err])
     })
   }
 
@@ -156,6 +165,8 @@ export class IndexeddbPersistence extends Observable {
     return this._db.then(db => {
       const [custom] = idb.transact(db, [customStoreName], 'readonly')
       return idb.get(custom, key)
+    }).catch(err => {
+      this.emit('error', [err])
     })
   }
 
@@ -168,6 +179,8 @@ export class IndexeddbPersistence extends Observable {
     return this._db.then(db => {
       const [custom] = idb.transact(db, [customStoreName])
       return idb.put(custom, value, key)
+    }).catch(err => {
+      this.emit('error', [err])
     })
   }
 
@@ -179,6 +192,8 @@ export class IndexeddbPersistence extends Observable {
     return this._db.then(db => {
       const [custom] = idb.transact(db, [customStoreName])
       return idb.del(custom, key)
+    }).catch(err => {
+      this.emit('error', [err])
     })
   }
 }
