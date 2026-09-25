@@ -1,4 +1,4 @@
-# y-indexeddb
+# @y/indexeddb
 
 > IndexedDB database provider for Yjs. [Documentation](https://docs.yjs.dev/ecosystem/database-provider/y-indexeddb)
 
@@ -14,7 +14,7 @@ there.
 You find the complete documentation published online: [API documentation](https://docs.yjs.dev/ecosystem/database-provider/y-indexeddb).
 
 ```sh
-npm i --save y-indexeddb
+npm i --save @y/indexeddb
 ```
 
 ```js

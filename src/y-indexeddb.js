@@ -1,4 +1,4 @@
-import * as Y from 'yjs'
+import * as Y from '@y/y'
 import * as idb from 'lib0/indexeddb'
 import * as promise from 'lib0/promise'
 import { Observable } from 'lib0/observable'
@@ -19,7 +19,7 @@ export const fetchUpdates = (idbPersistence, beforeApplyUpdatesCallback = () => 
     if (!idbPersistence._destroyed) {
       beforeApplyUpdatesCallback(updatesStore)
       Y.transact(idbPersistence.doc, () => {
-        updates.forEach(val => Y.applyUpdate(idbPersistence.doc, val))
+        updates.forEach(val => Y.applyUpdate(idbPersistence.doc, new Uint8Array(val)))
       }, idbPersistence, false)
       afterApplyUpdatesCallback(updatesStore)
     }
@@ -37,7 +37,7 @@ export const storeState = (idbPersistence, forceStore = true) =>
   fetchUpdates(idbPersistence)
     .then(updatesStore => {
       if (forceStore || idbPersistence._dbsize >= PREFERRED_TRIM_SIZE) {
-        idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(idbPersistence.doc))
+        idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(idbPersistence.doc).buffer)
           .then(() => idb.del(updatesStore, idb.createIDBKeyRangeUpperBound(idbPersistence._dbref, true)))
           .then(() => idb.count(updatesStore).then(cnt => { idbPersistence._dbsize = cnt }))
       }
@@ -84,7 +84,7 @@ export class IndexeddbPersistence extends Observable {
       /**
        * @param {IDBObjectStore} updatesStore
        */
-      const beforeApplyUpdatesCallback = (updatesStore) => idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(doc))
+      const beforeApplyUpdatesCallback = (updatesStore) => idb.addAutoKey(updatesStore, Y.encodeStateAsUpdate(doc).buffer)
       const afterApplyUpdatesCallback = () => {
         if (this._destroyed) return this
         this.synced = true
@@ -107,7 +107,7 @@ export class IndexeddbPersistence extends Observable {
     this._storeUpdate = (update, origin) => {
       if (this.db && origin !== this) {
         const [updatesStore] = idb.transact(/** @type {IDBDatabase} */ (this.db), [updatesStoreName])
-        idb.addAutoKey(updatesStore, update)
+        idb.addAutoKey(updatesStore, new Uint8Array(update).buffer)
         if (++this._dbsize >= PREFERRED_TRIM_SIZE) {
           // debounce store call
           if (this._storeTimeoutId !== null) {
