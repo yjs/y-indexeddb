@@ -20,5 +20,5 @@ export default [{
     format: 'cjs',
     sourcemap: true
   },
-  external: id => /^(lib0|yjs)\//.test(id)
+  external: id => /^(lib0|@y)\//.test(id)
 }]

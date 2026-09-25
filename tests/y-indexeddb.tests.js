@@ -1,8 +1,8 @@
 
-import * as Y from 'yjs'
+import * as Y from '@y/y'
 import { IndexeddbPersistence, clearDocument, PREFERRED_TRIM_SIZE, fetchUpdates } from '../src/y-indexeddb.js'
-import * as t from 'lib0/testing.js'
-import * as promise from 'lib0/promise.js'
+import * as t from 'lib0/testing'
+import * as promise from 'lib0/promise'
 
 /**
  * @param {t.TestCase} tc
@@ -22,9 +22,9 @@ export const testPerf = async tc => {
 export const testIdbUpdateAndMerge = async tc => {
   await clearDocument(tc.testName)
   const doc1 = new Y.Doc()
-  const arr1 = doc1.getArray('t')
+  const arr1 = doc1.get('t')
   const doc2 = new Y.Doc()
-  const arr2 = doc2.getArray('t')
+  const arr2 = doc2.get('t')
   arr1.insert(0, [0])
   const persistence1 = new IndexeddbPersistence(tc.testName, doc1)
   persistence1._storeTimeout = 0
@@ -57,9 +57,9 @@ export const testIdbUpdateAndMerge = async tc => {
 export const testIdbConcurrentMerge = async tc => {
   await clearDocument(tc.testName)
   const doc1 = new Y.Doc()
-  const arr1 = doc1.getArray('t')
+  const arr1 = doc1.get('t')
   const doc2 = new Y.Doc()
-  const arr2 = doc2.getArray('t')
+  const arr2 = doc2.get('t')
   arr1.insert(0, [0])
   const persistence1 = new IndexeddbPersistence(tc.testName, doc1)
   persistence1._storeTimeout = 0

@@ -1,6 +1,6 @@
 {
-  "name": "y-indexeddb",
-  "version": "9.0.12",
+  "name": "@y/indexeddb",
+  "version": "10.0.0",
   "description": "IndexedDB database adapter for Yjs",
   "type": "module",
   "main": "./dist/y-indexeddb.cjs",
@@ -59,26 +59,27 @@
   },
   "homepage": "https://yjs.dev",
   "dependencies": {
-    "lib0": "^0.2.74"
+    "lib0": "^1.0.0-rc.29"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^11.1.0",
-    "@rollup/plugin-node-resolve": "^7.1.3",
+    "@rollup/plugin-commonjs": "^29.0.3",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@types/node": "^26.6.2",
+    "@y/y": "^14.0.0-rc.26",
     "concurrently": "^3.6.1",
     "http-server": "^0.12.3",
     "jsdoc": "^3.6.6",
     "markdownlint-cli": "^0.19.0",
-    "rollup": "^1.32.1",
+    "rollup": "^4.52.5",
     "standard": "^11.0.1",
-    "typescript": "^5.0.4",
-    "y-protocols": "^1.0.1",
-    "yjs": "^13.4.7"
+    "typescript": "^6.0.3",
+    "y-protocols": "^1.0.1"
   },
   "peerDependencies": {
-    "yjs": "^13.0.0"
+    "@y/y": "^14.0.0-rc.26"
   },
   "engines": {
     "npm": ">=8.0.0",
-    "node": ">=16.0.0"
+    "node": ">=22.0.0"
   }
 }

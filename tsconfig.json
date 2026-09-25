@@ -9,9 +9,12 @@
     "emitDeclarationOnly": true,
     "strict": true,
     "noImplicitAny": true,
-    "moduleResolution": "node",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "types": ["node"],
     "outDir": "./dist"
   },
-  "include": ["./src/**/*", "./tests/**/*"],
+  "include": ["./src/**/*", "./tests/**/*", "./node_modules/@y/y/global.d.ts"],
   "exclude": ["../lib0/**/*", "node_modules/**/*", "dist", "dist/**/*.js"]
 }
